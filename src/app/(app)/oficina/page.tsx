@@ -1,0 +1,21 @@
+import { requireTab } from "@/lib/guard";
+import { canRegisterRepair, canViewFinance } from "@/lib/roles";
+import OficinaClient from "./oficina-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function OficinaPage() {
+  const session = await requireTab("oficina");
+  return (
+    <div>
+      <h1 className="text-xl font-semibold mb-1">Oficina · Reparos</h1>
+      <p className="text-sm text-[var(--muted)] mb-6">
+        Registre os containers reparados hoje. O status muda automaticamente para OK.
+      </p>
+      <OficinaClient
+        canRegister={canRegisterRepair(session.role)}
+        canFinance={canViewFinance(session.role)}
+      />
+    </div>
+  );
+}
