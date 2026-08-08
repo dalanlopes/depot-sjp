@@ -10,6 +10,7 @@ const TAB_HREF: Record<Tab, string> = {
   programacao: "/programacao",
   coletas: "/coletas",
   importacao: "/importacao",
+  usuarios: "/usuarios",
 };
 
 export async function requireTab(tab: Tab): Promise<SessionPayload> {

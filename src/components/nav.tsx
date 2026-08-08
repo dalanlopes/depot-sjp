@@ -13,6 +13,7 @@ const TAB_META: Record<Tab, { label: string; href: string; icon: string }> = {
   programacao: { label: "Programação", href: "/programacao", icon: "🗓️" },
   coletas: { label: "Coletas", href: "/coletas", icon: "🚚" },
   importacao: { label: "Importação", href: "/importacao", icon: "⬆️" },
+  usuarios: { label: "Usuários", href: "/usuarios", icon: "👤" },
 };
 
 export default function Nav({ session }: { session: SessionPayload }) {

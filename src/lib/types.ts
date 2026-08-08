@@ -50,7 +50,7 @@ type Timestamp = string;
 export interface UsersTable {
   id: Generated<string>;
   nome: string;
-  usuario: string;
+  email: string;
   senha_hash: string;
   role: Role;
   ativo: Generated<boolean>;

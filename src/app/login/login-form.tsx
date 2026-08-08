@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,11 +18,11 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, senha }),
+        body: JSON.stringify({ email, senha }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Usuário ou senha inválidos.");
+        setError(data.error ?? "E-mail ou senha inválidos.");
         setLoading(false);
         return;
       }
@@ -37,12 +37,13 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="text-sm font-medium block mb-1.5">Usuário</label>
+        <label className="text-sm font-medium block mb-1.5">E-mail</label>
         <input
+          type="email"
           className="input"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           required
         />
       </div>

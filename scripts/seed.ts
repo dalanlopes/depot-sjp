@@ -2,10 +2,7 @@ import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 
 const USERS = [
-  { nome: "Gestor Depot", usuario: "gestor", senha: "gestor123", role: "GESTOR" },
-  { nome: "Mecânico Oficina", usuario: "mecanico", senha: "mecanico123", role: "MECANICO" },
-  { nome: "Analista Programação", usuario: "programacao", senha: "prog123", role: "ANALISTA_PROGRAMACAO" },
-  { nome: "Analista Faturamento", usuario: "faturamento", senha: "fatur123", role: "ANALISTA_FATURAMENTO" },
+  { nome: "Admin Depot", email: "admin@depotsjp.local", senha: "admin123", role: "GESTOR" },
 ];
 
 async function main() {
@@ -22,16 +19,17 @@ async function main() {
   for (const u of USERS) {
     const hash = await bcrypt.hash(u.senha, 10);
     await pool.query(
-      `INSERT INTO users (nome, usuario, senha_hash, role)
+      `INSERT INTO users (nome, email, senha_hash, role)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (usuario) DO UPDATE SET senha_hash = EXCLUDED.senha_hash`,
-      [u.nome, u.usuario, hash, u.role]
+       ON CONFLICT (email) DO UPDATE SET senha_hash = EXCLUDED.senha_hash`,
+      [u.nome, u.email, hash, u.role]
     );
-    console.log(`Usuário criado/atualizado: ${u.usuario} (${u.role}) - senha: ${u.senha}`);
+    console.log(`Usuário criado/atualizado: ${u.email} (${u.role}) - senha: ${u.senha}`);
   }
 
   await pool.end();
   console.log("\nIMPORTANTE: troque essas senhas assim que possível em produção.");
+  console.log("Usuários adicionais podem ser criados pela tela Usuários (perfil Gestor) dentro do sistema.");
 }
 
 main().catch((err) => {

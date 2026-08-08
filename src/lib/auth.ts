@@ -17,7 +17,7 @@ function getSecret() {
 export interface SessionPayload {
   userId: string;
   nome: string;
-  usuario: string;
+  email: string;
   role: Role;
 }
 

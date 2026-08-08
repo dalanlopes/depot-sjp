@@ -11,28 +11,28 @@
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
-    "next": "16.3.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
     "bcryptjs": "^2.4.3",
-    "jose": "^5.9.6",
-    "recharts": "^2.13.3",
-    "xlsx": "^0.18.5",
-    "zod": "^3.24.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "jose": "^5.9.6",
+    "kysely": "^0.27.5",
+    "next": "16.3.0",
     "pg": "^8.13.1",
-    "kysely": "^0.27.5"
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "recharts": "^2.13.3",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
-    "typescript": "^5",
     "tsx": "^4.19.2",
-    "@types/pg": "^8.11.10",
-    "@types/bcryptjs": "^2.4.6"
+    "typescript": "^5"
   }
 }

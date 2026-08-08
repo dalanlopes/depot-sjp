@@ -9,7 +9,7 @@ CREATE TYPE status_container AS ENUM ('WS', 'AR', 'AE', 'RE', 'OK');
 CREATE TABLE users (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   nome          TEXT NOT NULL,
-  usuario       TEXT NOT NULL UNIQUE,
+  email         TEXT NOT NULL UNIQUE,
   senha_hash    TEXT NOT NULL,
   role          role NOT NULL,
   ativo         BOOLEAN NOT NULL DEFAULT true,

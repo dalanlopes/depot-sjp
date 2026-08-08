@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { verifyPassword, setSessionCookie } from "@/lib/auth";
 
 const schema = z.object({
-  usuario: z.string().min(1),
+  email: z.string().email("E-mail inválido."),
   senha: z.string().min(1),
 });
 
@@ -15,27 +15,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
   }
 
-  const { usuario, senha } = parsed.data;
+  const { email, senha } = parsed.data;
   const user = await db
     .selectFrom("users")
     .selectAll()
-    .where("usuario", "=", usuario)
+    .where("email", "=", email.toLowerCase().trim())
     .where("ativo", "=", true)
     .executeTakeFirst();
 
   if (!user) {
-    return NextResponse.json({ error: "Usuário ou senha inválidos." }, { status: 401 });
+    return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
   }
 
   const valid = await verifyPassword(senha, user.senha_hash);
   if (!valid) {
-    return NextResponse.json({ error: "Usuário ou senha inválidos." }, { status: 401 });
+    return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
   }
 
   await setSessionCookie({
     userId: user.id,
     nome: user.nome,
-    usuario: user.usuario,
+    email: user.email,
     role: user.role,
   });
 

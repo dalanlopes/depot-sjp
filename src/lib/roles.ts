@@ -14,7 +14,8 @@ export type Tab =
   | "ocorrencias"
   | "programacao"
   | "coletas"
-  | "importacao";
+  | "importacao"
+  | "usuarios";
 
 // Abas visíveis por perfil.
 export const TAB_ACCESS: Record<Role, Tab[]> = {
@@ -29,6 +30,7 @@ export const TAB_ACCESS: Record<Role, Tab[]> = {
     "programacao",
     "coletas",
     "importacao",
+    "usuarios",
   ],
 };
 
@@ -59,4 +61,8 @@ export function canRegisterCollection(role: Role): boolean {
 
 export function defaultTabFor(role: Role): Tab {
   return TAB_ACCESS[role][0];
+}
+
+export function canManageUsers(role: Role): boolean {
+  return role === "GESTOR";
 }
