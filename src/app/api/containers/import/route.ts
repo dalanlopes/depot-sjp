@@ -190,6 +190,11 @@ function parseSimpleFormat(matrix: unknown[][]): ParsedRow[] {
   }));
 }
 
+function valorIguais(a: string | null, b: number | null): boolean {
+  const an = a === null ? null : Number(a);
+  return (an === null || isNaN(an) ? null : an) === b;
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -208,7 +213,18 @@ export async function POST(req: NextRequest) {
 
   const rows = parseTerminalReport(matrix) ?? parseSimpleFormat(matrix);
 
-  let imported = 0;
+  // Carrega o estoque atual uma única vez, para comparar com a planilha e
+  // saber exatamente o que mudou (em vez de sobrescrever tudo às cegas).
+  const existentes = await db
+    .selectFrom("containers")
+    .select(["numero", "armador", "padrao", "status", "entrada", "tipo", "valor_estimado"])
+    .execute();
+  const porNumero = new Map(existentes.map((c) => [c.numero, c]));
+
+  let criados = 0;
+  let atualizados = 0;
+  let semAlteracao = 0;
+  const mudancasStatus: { numero: string; de: string; para: string }[] = [];
   const errors: { linha: number; motivo: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -229,6 +245,20 @@ export async function POST(req: NextRequest) {
     if (!STATUS_CONTAINER.includes(row.status as never)) {
       errors.push({ linha, motivo: `Status inválido: "${row.status}" (container ${row.numero}).` });
       continue;
+    }
+
+    const atual = porNumero.get(row.numero);
+    const mudou =
+      !atual ||
+      atual.armador !== row.armador ||
+      atual.padrao !== row.padrao ||
+      atual.status !== row.status ||
+      (atual.entrada ?? null) !== (row.entrada ?? null) ||
+      (atual.tipo ?? null) !== (row.tipo ?? null) ||
+      !valorIguais(atual.valor_estimado, row.valorEstimado);
+
+    if (atual && atual.status !== row.status) {
+      mudancasStatus.push({ numero: row.numero, de: atual.status, para: row.status });
     }
 
     await db
@@ -255,8 +285,20 @@ export async function POST(req: NextRequest) {
       )
       .execute();
 
-    imported++;
+    if (!atual) criados++;
+    else if (mudou) atualizados++;
+    else semAlteracao++;
   }
 
-  return NextResponse.json({ imported, total: rows.length, errors });
+  const imported = criados + atualizados + semAlteracao;
+
+  return NextResponse.json({
+    imported,
+    total: rows.length,
+    criados,
+    atualizados,
+    semAlteracao,
+    mudancasStatus,
+    errors,
+  });
 }
