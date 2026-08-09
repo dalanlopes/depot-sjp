@@ -5,6 +5,7 @@ import {
   Bar,
   Cell,
   XAxis,
+  YAxis,
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
@@ -59,7 +60,8 @@ export default function RepairsBarCard({
       <div style={{ height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
-            <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 10 }} interval={0} />
+            <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
+            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
             <ReferenceLine
               y={metaDiaria}

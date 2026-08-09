@@ -91,7 +91,7 @@ export default function ProgramacaoCard({
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(79,70,229,0.06)" }} />
             <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "concluido" ? "Concluído" : "A realizar")} />
-            <ReferenceLine y={35} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: "Meta 35", fontSize: 10, position: "insideTopRight" }} />
+            <ReferenceLine y={metaDiaria} stroke="var(--muted)" strokeDasharray="4 4" label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }} />
             <Bar dataKey="concluido" stackId="op" fill="var(--success)" radius={[0, 0, 0, 0]} maxBarSize={34} />
             <Bar dataKey="pendente" stackId="op" fill="var(--warning)" radius={[6, 6, 0, 0]} maxBarSize={34} />
           </BarChart>
