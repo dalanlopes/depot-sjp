@@ -66,13 +66,13 @@ export default function OficinaClient({
 
   const [numero, setNumero] = useState("");
   const [dm, setDm] = useState<Dm>("DM1");
-  const [porContaDepot, setPorContaDepot] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [pending, setPending] = useState<{ numero: string; dm: Dm; porContaDepot: boolean }[]>([]);
+  const [pending, setPending] = useState<{ numero: string; dm: Dm }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
+  const [excluindoReparo, setExcluindoReparo] = useState<string | null>(null);
 
   const [series7d, setSeries7d] = useState<PontoDia[]>([]);
   const [metaDiaria, setMetaDiaria] = useState(35);
@@ -115,6 +115,11 @@ export default function OficinaClient({
   }, [load, loadSummary]);
 
   async function handleBarClick(point: PontoDia) {
+    if (diaSelecionado === point.data) {
+      setDiaSelecionado(null);
+      setDiaSelecionadoDm(null);
+      return;
+    }
     setDiaSelecionado(point.data);
     setDiaSelecionadoLoading(true);
     const res = await fetch(`/api/reparos?data=${point.data}`);
@@ -149,9 +154,8 @@ export default function OficinaClient({
         setAddError("Container não encontrado no estoque.");
         return;
       }
-      setPending((prev) => [...prev, { numero: n, dm, porContaDepot }]);
+      setPending((prev) => [...prev, { numero: n, dm }]);
       setNumero("");
-      setPorContaDepot(false);
     } finally {
       setChecking(false);
     }
@@ -192,6 +196,27 @@ export default function OficinaClient({
       body: JSON.stringify({ valor }),
     });
     load();
+    if (historyOpen) abrirHistorico(historyDate);
+  }
+
+  async function toggleDepot(r: ReparoRow) {
+    await fetch(`/api/reparos/${r.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ porContaDepot: !r.por_conta_depot }),
+    });
+    load();
+    loadSummary();
+    if (historyOpen) abrirHistorico(historyDate);
+  }
+
+  async function excluirReparo(r: ReparoRow) {
+    if (!confirm(`Excluir o reparo do container ${r.container_numero}?`)) return;
+    setExcluindoReparo(r.id);
+    await fetch(`/api/reparos/${r.id}`, { method: "DELETE" });
+    setExcluindoReparo(null);
+    load();
+    loadSummary();
     if (historyOpen) abrirHistorico(historyDate);
   }
 
@@ -307,14 +332,6 @@ export default function OficinaClient({
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-              <input
-                type="checkbox"
-                checked={porContaDepot}
-                onChange={(e) => setPorContaDepot(e.target.checked)}
-              />
-              Por conta do Depot
-            </label>
             <button className="btn btn-secondary disabled:opacity-50" onClick={addPending} type="button" disabled={checking}>
               {checking ? "Verificando..." : "Adicionar"}
             </button>
@@ -326,16 +343,12 @@ export default function OficinaClient({
               {submitting ? "Salvando..." : `Salvar (${pending.length})`}
             </button>
           </div>
-          <p className="text-[11px] text-[var(--muted)] mt-1.5">
-            "Por conta do Depot" marca o reparo como feito mas não cobrado do armador.
-          </p>
           {addError && <p className="text-sm text-[var(--danger)] mt-2">{addError}</p>}
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {pending.map((p) => (
                 <span key={p.numero} className="badge bg-indigo-50 text-indigo-700">
                   {p.numero} · {p.dm}
-                  {p.porContaDepot && <span className="ml-1 text-amber-700">· Depot</span>}
                   <button
                     onClick={() => setPending(pending.filter((x) => x.numero !== p.numero))}
                     className="ml-1"
@@ -376,7 +389,7 @@ export default function OficinaClient({
           onClick={() => setHistoryOpen(false)}
         >
           <div
-            className="card p-6 w-full max-w-3xl max-h-[85vh] overflow-auto"
+            className="card p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -395,7 +408,7 @@ export default function OficinaClient({
                     <th className="px-3 py-2 font-medium">Armador</th>
                     <th className="px-3 py-2 font-medium">Padrão</th>
                     <th className="px-3 py-2 font-medium">Data do Reparo</th>
-                    {canFinance && <th className="px-3 py-2 font-medium">Valor faturado</th>}
+                    {canFinance && <th className="px-3 py-2 font-medium">Faturamento</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -413,26 +426,43 @@ export default function OficinaClient({
                       <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
                       {canFinance && (
                         <td className="px-3 py-2">
-                          {r.por_conta_depot ? (
-                            <span className="text-xs text-[var(--muted)]">Não cobrado (Depot)</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <input
-                                className="input max-w-[120px]"
-                                placeholder="0,00"
-                                defaultValue={r.valor_faturado ?? ""}
-                                onChange={(e) =>
-                                  setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
-                                }
-                              />
-                              <button
-                                className="btn btn-secondary text-xs px-2 py-1"
-                                onClick={() => saveValor(r.id)}
-                              >
-                                Salvar
-                              </button>
-                            </div>
-                          )}
+                          <label className="flex items-center gap-1.5 text-[10px] text-[var(--muted)] mb-1.5">
+                            <input
+                              type="checkbox"
+                              checked={r.por_conta_depot}
+                              onChange={() => toggleDepot(r)}
+                            />
+                            Por conta do Depot
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {r.por_conta_depot ? (
+                              <span className="text-xs text-[var(--muted)]">Não cobrado</span>
+                            ) : (
+                              <>
+                                <input
+                                  className="input max-w-[110px]"
+                                  placeholder="0,00"
+                                  defaultValue={r.valor_faturado ?? ""}
+                                  onChange={(e) =>
+                                    setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                  }
+                                />
+                                <button
+                                  className="btn btn-secondary text-xs px-2 py-1"
+                                  onClick={() => saveValor(r.id)}
+                                >
+                                  Salvar
+                                </button>
+                              </>
+                            )}
+                            <button
+                              className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
+                              onClick={() => excluirReparo(r)}
+                              disabled={excluindoReparo === r.id}
+                            >
+                              {excluindoReparo === r.id ? "..." : "Excluir"}
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>

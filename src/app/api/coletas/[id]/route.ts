@@ -48,6 +48,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!container) {
     return NextResponse.json({ error: "Container não encontrado no estoque." }, { status: 404 });
   }
+  if (pendente.programacao_id) {
+    const programacao = await db
+      .selectFrom("programacoes")
+      .select("armador")
+      .where("id", "=", pendente.programacao_id)
+      .executeTakeFirst();
+    if (programacao && programacao.armador !== container.armador) {
+      return NextResponse.json(
+        {
+          error: `Esse container é do armador ${container.armador}, mas a programação é do armador ${programacao.armador}. Use um container do mesmo armador.`,
+        },
+        { status: 409 }
+      );
+    }
+  }
   if (container.status !== "OK") {
     return NextResponse.json(
       { error: `Container não está disponível (status atual: ${container.status}).` },
