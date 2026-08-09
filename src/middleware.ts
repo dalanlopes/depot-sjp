@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "depot_session";
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/check-email", "/api/auth/set-password"];
 
 // A verificação criptográfica completa do JWT (assinatura + expiração) é feita
 // nos Server Components / API routes via getSession() (runtime Node.js), que é
