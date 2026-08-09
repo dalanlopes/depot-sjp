@@ -2,24 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { TAB_ACCESS, ROLE_LABELS, type Tab } from "@/lib/roles";
+import { ROLE_LABELS, TAB_LABELS } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/auth";
-
-const TAB_META: Record<Tab, { label: string; href: string; icon: string }> = {
-  dashboard: { label: "Dashboard", href: "/dashboard", icon: "📊" },
-  estoque: { label: "Estoque", href: "/estoque", icon: "📦" },
-  oficina: { label: "Oficina", href: "/oficina", icon: "🔧" },
-  ocorrencias: { label: "Ocorrências", href: "/ocorrencias", icon: "⚠️" },
-  programacao: { label: "Programação", href: "/programacao", icon: "🗓️" },
-  coletas: { label: "Coletas", href: "/coletas", icon: "🚚" },
-  importacao: { label: "Importação", href: "/importacao", icon: "⬆️" },
-  usuarios: { label: "Usuários", href: "/usuarios", icon: "👤" },
-};
 
 export default function Nav({ session }: { session: SessionPayload }) {
   const pathname = usePathname();
   const router = useRouter();
-  const tabs = TAB_ACCESS[session.role];
+  const tabs = session.tabs;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -28,7 +17,7 @@ export default function Nav({ session }: { session: SessionPayload }) {
   }
 
   return (
-    <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-white flex flex-col p-4">
+    <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-white flex flex-col p-4 h-screen sticky top-0 overflow-y-auto">
       <div className="flex items-center gap-2 px-2 py-3 mb-2">
         <div className="w-8 h-8 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center font-bold text-sm">
           SJP
@@ -48,12 +37,13 @@ export default function Nav({ session }: { session: SessionPayload }) {
       )}
       <nav className="flex-1 space-y-1">
         {tabs.map((tab) => {
-          const meta = TAB_META[tab];
-          const active = pathname.startsWith(meta.href);
+          const meta = TAB_LABELS[tab];
+          const href = `/${tab}`;
+          const active = pathname.startsWith(href);
           return (
             <Link
               key={tab}
-              href={meta.href}
+              href={href}
               className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-[var(--primary)] text-white"
@@ -67,7 +57,7 @@ export default function Nav({ session }: { session: SessionPayload }) {
         })}
       </nav>
 
-      <div className="border-t border-[var(--border)] pt-3 mt-3">
+      <div className="border-t border-[var(--border)] pt-3 mt-3 shrink-0">
         <div className="px-2 text-sm font-medium truncate">{session.nome}</div>
         <button
           onClick={handleLogout}

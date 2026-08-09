@@ -16,8 +16,8 @@ const TAB_HREF: Record<Tab, string> = {
 export async function requireTab(tab: Tab): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!canAccessTab(session.role, tab)) {
-    redirect(TAB_HREF[defaultTabFor(session.role)]);
+  if (!canAccessTab(session, tab)) {
+    redirect(TAB_HREF[defaultTabFor(session)]);
   }
   return session;
 }

@@ -14,7 +14,7 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canEditFinance(session.role)) {
+  if (!canEditFinance(session)) {
     return NextResponse.json({ error: "Sem permissão para editar valores financeiros." }, { status: 403 });
   }
 

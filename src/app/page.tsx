@@ -15,6 +15,6 @@ const TAB_HREF: Record<string, string> = {
 export default async function Home() {
   const session = await getSession();
   if (!session) redirect("/login");
-  const tab = defaultTabFor(session.role);
+  const tab = defaultTabFor(session);
   redirect(TAB_HREF[tab]);
 }

@@ -40,7 +40,7 @@ const schema = z
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session.role, "programacao")) {
+  if (!canAccessTab(session, "programacao")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session.role, "programacao")) {
+  if (!canAccessTab(session, "programacao")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

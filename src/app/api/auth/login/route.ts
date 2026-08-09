@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyPassword, setSessionCookie } from "@/lib/auth";
+import { resolveTabs } from "@/lib/roles";
 
 const schema = z.object({
   email: z.string().email("E-mail inválido."),
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     .where("ativo", "=", true)
     .executeTakeFirst();
 
-  if (!user) {
+  if (!user || !user.senha_hash) {
     return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
   }
 
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
     nome: user.nome,
     email: user.email,
     role: user.role,
+    tabs: resolveTabs(user.role, user.tabs),
+    podeVerFaturamento: user.pode_ver_faturamento,
   });
 
   return NextResponse.json({ ok: true });

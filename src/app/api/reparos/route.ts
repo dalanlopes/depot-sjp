@@ -9,7 +9,7 @@ import { META_DIARIA_REPAROS } from "@/lib/types";
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session.role, "oficina")) {
+  if (!canAccessTab(session, "oficina")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -34,7 +34,7 @@ export async function GET() {
     .orderBy("r.data", "desc")
     .execute();
 
-  const showFinance = canViewFinance(session.role);
+  const showFinance = canViewFinance(session);
   const reparos = rows.map((r) => ({
     ...r,
     valor_faturado: showFinance ? r.valor_faturado : undefined,

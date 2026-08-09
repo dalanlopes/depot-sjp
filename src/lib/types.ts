@@ -51,9 +51,17 @@ export interface UsersTable {
   id: Generated<string>;
   nome: string;
   email: string;
-  senha_hash: string;
+  senha_hash: string | null;
   role: Role;
   ativo: Generated<boolean>;
+  criado_em: Generated<Timestamp>;
+  tabs: string[] | null;
+  pode_ver_faturamento: Generated<boolean>;
+}
+
+export interface SolicitacoesAcessoTable {
+  id: Generated<string>;
+  email: string;
   criado_em: Generated<Timestamp>;
 }
 
@@ -119,4 +127,5 @@ export interface Database {
   ocorrencias: OcorrenciasTable;
   programacoes: ProgramacoesTable;
   coletas: ColetasTable;
+  solicitacoes_acesso: SolicitacoesAcessoTable;
 }

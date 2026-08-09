@@ -14,7 +14,7 @@ export default async function OficinaPage() {
       </p>
       <OficinaClient
         canRegister={canRegisterRepair(session.role)}
-        canFinance={canViewFinance(session.role)}
+        canFinance={canViewFinance(session)}
       />
     </div>
   );

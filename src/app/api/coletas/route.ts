@@ -13,7 +13,7 @@ const schema = z.object({
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session.role, "coletas")) {
+  if (!canAccessTab(session, "coletas")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

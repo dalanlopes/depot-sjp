@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "./types";
+import type { Tab } from "./roles";
 
 const SESSION_COOKIE = "depot_session";
 const alg = "HS256";
@@ -19,6 +20,8 @@ export interface SessionPayload {
   nome: string;
   email: string;
   role: Role;
+  tabs: Tab[];
+  podeVerFaturamento: boolean;
 }
 
 export async function hashPassword(plain: string) {

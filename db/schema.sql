@@ -7,13 +7,22 @@ CREATE TYPE padrao AS ENUM ('AL', 'CG', 'OU'); -- OU = Aguardando Vistoria (aind
 CREATE TYPE status_container AS ENUM ('WS', 'AR', 'AE', 'RE', 'OK');
 
 CREATE TABLE users (
-  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  nome          TEXT NOT NULL,
-  email         TEXT NOT NULL UNIQUE,
-  senha_hash    TEXT NOT NULL,
-  role          role NOT NULL,
-  ativo         BOOLEAN NOT NULL DEFAULT true,
-  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  nome                 TEXT NOT NULL,
+  email                TEXT NOT NULL UNIQUE,
+  senha_hash           TEXT, -- nulo até o usuário criar a senha no primeiro acesso
+  role                 role NOT NULL,
+  ativo                BOOLEAN NOT NULL DEFAULT true,
+  criado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  tabs                 TEXT[], -- abas liberadas para esse usuário; nulo = usa o padrão do perfil
+  pode_ver_faturamento BOOLEAN NOT NULL DEFAULT false -- permissão extra para ver faturamento da Oficina
+);
+
+-- E-mails que tentaram logar sem estar cadastrados: ficam aqui até o admin autorizar ou recusar.
+CREATE TABLE solicitacoes_acesso (
+  id        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  email     TEXT NOT NULL UNIQUE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Tabela mestre: fonte única de verdade para o status de cada container

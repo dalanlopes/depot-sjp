@@ -14,7 +14,7 @@ export async function GET() {
   const dia30Atras = addDaysBR(hoje, -29);
   const dia7Frente = addDaysBR(hoje, 6);
 
-  const showFinance = canViewFinance(session.role);
+  const showFinance = canViewFinance(session);
 
   const segunda = mondayOfWeekBR(hoje);
   const domingo = sundayOfWeekBR(hoje);
