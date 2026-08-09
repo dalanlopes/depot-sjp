@@ -19,7 +19,10 @@ CREATE TABLE users (
   ativo                BOOLEAN NOT NULL DEFAULT true,
   criado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
   tabs                 TEXT[], -- abas liberadas para esse usuário; nulo = usa o padrão do perfil
-  pode_ver_faturamento BOOLEAN NOT NULL DEFAULT false -- permissão extra para ver faturamento da Oficina
+  pode_ver_faturamento BOOLEAN NOT NULL DEFAULT false, -- permissão extra para ver faturamento da Oficina
+  setup_token          TEXT, -- código de uso único p/ 1º acesso ou pós-reset; nulo depois de usado
+  setup_token_expira   TIMESTAMPTZ, -- validade do setup_token (7 dias)
+  session_version      INTEGER NOT NULL DEFAULT 1 -- incrementado ao desativar/resetar; derruba sessões (JWT) já emitidas
 );
 
 -- E-mails que tentaram logar sem estar cadastrados: ficam aqui até o admin autorizar ou recusar.
@@ -67,6 +70,14 @@ CREATE TABLE ocorrencias (
 );
 
 CREATE INDEX idx_ocorrencias_data ON ocorrencias(data);
+
+-- Contador simples de tentativas (login, check-email, set-password) por
+-- chave (ip/e-mail) para limitar força bruta e varredura de e-mails.
+CREATE TABLE rate_limits (
+  chave         TEXT PRIMARY KEY,
+  tentativas    INTEGER NOT NULL DEFAULT 1,
+  janela_inicio TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- Pedido de retirada: só a demanda (data, quem pediu, destino, armador,
 -- quantidade). O container e o CM de cada unidade são preenchidos depois,

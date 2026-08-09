@@ -1,9 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canImportData } from "@/lib/roles";
 import { ARMADORES, PADROES, STATUS_CONTAINER } from "@/lib/types";
+
+// Achata o valor de uma célula do exceljs (que pode vir como texto, número,
+// data, fórmula calculada ou rich text) para um valor simples, no mesmo
+// formato que o parser abaixo já espera.
+function cellPlain(v: ExcelJS.CellValue): string | number | Date | null {
+  if (v === null || v === undefined) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === "object") {
+    const obj = v as unknown as Record<string, unknown>;
+    if (Array.isArray(obj.richText)) {
+      return (obj.richText as { text: string }[]).map((r) => r.text).join("");
+    }
+    if ("result" in obj) {
+      const r = obj.result;
+      if (r instanceof Date || typeof r === "number" || typeof r === "string") return r;
+      return null;
+    }
+    if ("text" in obj) return String(obj.text);
+    return null;
+  }
+  return v as string | number;
+}
+
+async function sheetToMatrix(buffer: Buffer): Promise<unknown[][]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+  const worksheet = workbook.worksheets[0];
+  const matrix: unknown[][] = [];
+  worksheet.eachRow({ includeEmpty: true }, (row) => {
+    const vals = row.values as ExcelJS.CellValue[];
+    const linha: unknown[] = [];
+    for (let c = 1; c < vals.length; c++) {
+      linha.push(cellPlain(vals[c]));
+    }
+    matrix.push(linha);
+  });
+  return matrix;
+}
+
+function matrixToObjects(matrix: unknown[][]): Record<string, unknown>[] {
+  if (matrix.length === 0) return [];
+  const header = matrix[0].map((c) => String(c ?? "").trim());
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 1; i < matrix.length; i++) {
+    const row = matrix[i];
+    if (!row || isBlankRow(row)) continue;
+    const obj: Record<string, unknown> = {};
+    header.forEach((h, idx) => {
+      if (h) obj[h] = row[idx] ?? "";
+    });
+    rows.push(obj);
+  }
+  return rows;
+}
 
 interface ParsedRow {
   numero: string;
@@ -122,8 +176,8 @@ function parseTerminalReport(matrix: unknown[][]): ParsedRow[] | null {
   return rows;
 }
 
-function parseSimpleFormat(sheet: XLSX.WorkSheet): ParsedRow[] {
-  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+function parseSimpleFormat(matrix: unknown[][]): ParsedRow[] {
+  const rawRows = matrixToObjects(matrix);
   const norm = (v: unknown) => String(v ?? "").trim().toUpperCase();
   return rawRows.map((r) => ({
     numero: norm(r["numero"] ?? r["Numero"] ?? r["Número"] ?? r["container"] ?? r["Container"]),
@@ -150,11 +204,9 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null });
+  const matrix = await sheetToMatrix(buffer);
 
-  const rows = parseTerminalReport(matrix) ?? parseSimpleFormat(sheet);
+  const rows = parseTerminalReport(matrix) ?? parseSimpleFormat(matrix);
 
   let imported = 0;
   const errors: { linha: number; motivo: string }[] = [];

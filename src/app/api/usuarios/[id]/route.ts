@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { sql } from "kysely";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, generateSetupToken } from "@/lib/auth";
 import { canManageUsers, ALL_TABS } from "@/lib/roles";
+
+const SETUP_TOKEN_VALIDADE_DIAS = 7;
 
 const schema = z.object({
   ativo: z.boolean().optional(),
@@ -32,7 +35,22 @@ export async function PATCH(
   if (parsed.data.ativo !== undefined) update.ativo = parsed.data.ativo;
   if (parsed.data.tabs !== undefined) update.tabs = parsed.data.tabs.length > 0 ? parsed.data.tabs : null;
   if (parsed.data.podeVerFaturamento !== undefined) update.pode_ver_faturamento = parsed.data.podeVerFaturamento;
-  if (parsed.data.resetSenha) update.senha_hash = null;
+
+  let codigoConvite: string | null = null;
+  if (parsed.data.resetSenha) {
+    codigoConvite = generateSetupToken();
+    update.senha_hash = null;
+    update.setup_token = codigoConvite;
+    update.setup_token_expira = new Date(
+      Date.now() + SETUP_TOKEN_VALIDADE_DIAS * 24 * 60 * 60 * 1000
+    ).toISOString();
+  }
+
+  // Desativar a conta ou resetar a senha invalida qualquer sessão já aberta
+  // na hora (em vez de só quando o token expirar, até 12h depois).
+  if (parsed.data.ativo === false || parsed.data.resetSenha) {
+    update.session_version = sql`session_version + 1`;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nada para atualizar." }, { status: 400 });
@@ -45,7 +63,7 @@ export async function PATCH(
     .where("id", "=", id)
     .execute();
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, codigoConvite });
 }
 
 export async function DELETE(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 
 const schema = z.object({
   email: z.string().email("E-mail inválido."),
@@ -14,6 +15,18 @@ export async function POST(req: NextRequest) {
   }
 
   const email = parsed.data.email.toLowerCase().trim();
+
+  // Limita a varredura de e-mails (enumeração): poucas tentativas por IP e
+  // por e-mail dentro da janela.
+  const ip = clientIp(req);
+  const okIp = await checkRateLimit(`check-email:ip:${ip}`, { max: 30, janelaSegundos: 15 * 60 });
+  const okEmail = await checkRateLimit(`check-email:email:${email}`, { max: 10, janelaSegundos: 15 * 60 });
+  if (!okIp || !okEmail) {
+    return NextResponse.json(
+      { error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." },
+      { status: 429 }
+    );
+  }
 
   const user = await db
     .selectFrom("users")

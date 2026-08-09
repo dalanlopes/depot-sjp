@@ -11,6 +11,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [codigo, setCodigo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +19,7 @@ export default function LoginForm() {
     setStep("email");
     setSenha("");
     setConfirmarSenha("");
+    setCodigo("");
     setError(null);
   }
 
@@ -74,8 +76,12 @@ export default function LoginForm() {
   async function handleCreatePassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (senha.length < 6) {
-      setError("A senha precisa ter pelo menos 6 caracteres.");
+    if (!codigo.trim()) {
+      setError("Informe o código de convite enviado pelo administrador.");
+      return;
+    }
+    if (senha.length < 8) {
+      setError("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     if (senha !== confirmarSenha) {
@@ -87,7 +93,7 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, codigo }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -135,8 +141,20 @@ export default function LoginForm() {
     return (
       <form onSubmit={handleCreatePassword} className="space-y-4">
         <p className="text-sm text-[var(--muted)]">
-          Primeiro acesso de <strong>{email}</strong>. Crie sua senha para continuar.
+          Primeiro acesso de <strong>{email}</strong>. Peça o código de convite para o
+          administrador e crie sua senha para continuar.
         </p>
+        <div>
+          <label className="text-sm font-medium block mb-1.5">Código de convite</label>
+          <input
+            className="input uppercase tracking-widest font-mono"
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+            placeholder="Ex: K3F9QX2A"
+            required
+            autoFocus
+          />
+        </div>
         <div>
           <label className="text-sm font-medium block mb-1.5">Nova senha</label>
           <input
@@ -145,9 +163,8 @@ export default function LoginForm() {
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
-            autoFocus
           />
         </div>
         <div>
@@ -158,7 +175,7 @@ export default function LoginForm() {
             value={confirmarSenha}
             onChange={(e) => setConfirmarSenha(e.target.value)}
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
           />
         </div>

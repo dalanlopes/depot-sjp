@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, generateSetupToken } from "@/lib/auth";
 import { canManageUsers, ALL_TABS } from "@/lib/roles";
+
+const SETUP_TOKEN_VALIDADE_DIAS = 7;
 
 const schema = z.object({
   nome: z.string().min(2),
@@ -21,13 +23,31 @@ export async function GET() {
 
   const rows = await db
     .selectFrom("users")
-    .select(["id", "nome", "email", "role", "ativo", "criado_em", "tabs", "pode_ver_faturamento", "senha_hash"])
+    .select([
+      "id",
+      "nome",
+      "email",
+      "role",
+      "ativo",
+      "criado_em",
+      "tabs",
+      "pode_ver_faturamento",
+      "senha_hash",
+      "setup_token",
+      "setup_token_expira",
+    ])
     .orderBy("nome", "asc")
     .execute();
 
-  const usuarios = rows.map(({ senha_hash, ...u }) => ({
+  const usuarios = rows.map(({ senha_hash, setup_token, setup_token_expira, ...u }) => ({
     ...u,
     senhaDefinida: !!senha_hash,
+    // Só expõe o código de convite enquanto ele ainda for válido, para o
+    // admin poder reenviar/copiar sem precisar gerar outro.
+    codigoConvite:
+      setup_token && setup_token_expira && new Date(setup_token_expira as unknown as string) > new Date()
+        ? setup_token
+        : null,
   }));
 
   return NextResponse.json({ usuarios });
@@ -60,7 +80,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Já existe um usuário com esse e-mail." }, { status: 409 });
   }
 
-  // Usuário é criado sem senha: ele mesmo cria a senha no primeiro acesso.
+  // Usuário é criado sem senha: só define a senha com o código de convite
+  // abaixo (evita que qualquer um que descubra o e-mail sequestre a conta
+  // antes do dono real fazer o primeiro acesso).
+  const setupToken = generateSetupToken();
+  const setupTokenExpira = new Date(Date.now() + SETUP_TOKEN_VALIDADE_DIAS * 24 * 60 * 60 * 1000);
+
   await db
     .insertInto("users")
     .values({
@@ -70,11 +95,13 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role,
       tabs: parsed.data.tabs.length > 0 ? parsed.data.tabs : null,
       pode_ver_faturamento: parsed.data.podeVerFaturamento,
+      setup_token: setupToken,
+      setup_token_expira: setupTokenExpira.toISOString(),
     })
     .execute();
 
   // Se havia uma solicitação de acesso pendente para esse e-mail, remove.
   await db.deleteFrom("solicitacoes_acesso").where("email", "=", email).execute();
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, codigoConvite: setupToken }, { status: 201 });
 }

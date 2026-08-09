@@ -18,9 +18,9 @@ function createDb() {
 
   const pool = new Pool({
     connectionString,
-    ssl: connectionString.includes("localhost")
-      ? undefined
-      : { rejectUnauthorized: false },
+    // Valida o certificado do Postgres (Supabase) em vez de aceitar
+    // qualquer um: evita interceptação da conexão com o banco.
+    ssl: connectionString.includes("localhost") ? undefined : { rejectUnauthorized: true },
     max: 5,
   });
 

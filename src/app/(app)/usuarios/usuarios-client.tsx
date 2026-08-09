@@ -14,6 +14,7 @@ interface Usuario {
   tabs: string[] | null;
   pode_ver_faturamento: boolean;
   senhaDefinida: boolean;
+  codigoConvite: string | null;
 }
 
 interface Solicitacao {
@@ -56,6 +57,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [codigoGerado, setCodigoGerado] = useState<{ email: string; codigo: string } | null>(null);
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -116,17 +118,20 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
       body: JSON.stringify({ nome, email, role, tabs, podeVerFaturamento }),
     });
     setSaving(false);
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Erro ao criar usuário.");
       return;
+    }
+    if (data.codigoConvite) {
+      setCodigoGerado({ email, codigo: data.codigoConvite });
     }
     setNome("");
     setEmail("");
     setRole("MECANICO");
     setTabs(TAB_ACCESS["MECANICO"]);
     setPodeVerFaturamento(false);
-    setInfo("Usuário criado. Ele deve acessar a tela de login com esse e-mail e criar a própria senha no primeiro acesso.");
+    setInfo("Usuário criado. Repasse o código de convite abaixo para ele fazer o primeiro acesso.");
     load();
   }
 
@@ -140,12 +145,16 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
   }
 
   async function resetarSenha(u: Usuario) {
-    if (!confirm(`Resetar a senha de ${u.nome}? Ele(a) vai precisar criar uma nova senha no próximo login.`)) return;
-    await fetch(`/api/usuarios/${u.id}`, {
+    if (!confirm(`Resetar a senha de ${u.nome}? Ele(a) vai precisar do novo código de convite para criar uma senha nova.`)) return;
+    const res = await fetch(`/api/usuarios/${u.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resetSenha: true }),
     });
+    const data = await res.json().catch(() => ({}));
+    if (data.codigoConvite) {
+      setCodigoGerado({ email: u.email, codigo: data.codigoConvite });
+    }
     load();
   }
 
@@ -173,6 +182,33 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
 
   return (
     <div className="space-y-6">
+      {codigoGerado && (
+        <div className="card p-5 border-2 border-[var(--primary)] bg-green-50 max-w-lg">
+          <h2 className="text-sm font-semibold mb-1">Código de convite gerado</h2>
+          <p className="text-xs text-[var(--muted)] mb-3">
+            Repasse manualmente (WhatsApp, presencial etc) para <strong>{codigoGerado.email}</strong>. Vale por 7
+            dias e só funciona uma vez.
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold tracking-widest font-mono">{codigoGerado.codigo}</span>
+            <button
+              type="button"
+              className="btn btn-secondary text-xs"
+              onClick={() => navigator.clipboard?.writeText(codigoGerado.codigo)}
+            >
+              Copiar
+            </button>
+            <button
+              type="button"
+              className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] ml-auto"
+              onClick={() => setCodigoGerado(null)}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="card p-5 max-w-lg space-y-4">
         <h2 className="text-sm font-semibold">Novo usuário</h2>
         <div>
@@ -287,7 +323,12 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
                         {u.ativo ? "Ativo" : "Inativo"}
                       </span>
                       {u.ativo && !u.senhaDefinida && (
-                        <span className="block text-[11px] text-amber-600">Aguardando 1º acesso</span>
+                        <span className="block text-[11px] text-amber-600">
+                          Aguardando 1º acesso
+                          {u.codigoConvite && (
+                            <> · código <span className="font-mono font-semibold">{u.codigoConvite}</span></>
+                          )}
+                        </span>
                       )}
                     </td>
                     <td className="py-2 pr-3 text-right space-x-3 whitespace-nowrap">

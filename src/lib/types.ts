@@ -58,12 +58,21 @@ export interface UsersTable {
   criado_em: Generated<Timestamp>;
   tabs: string[] | null;
   pode_ver_faturamento: Generated<boolean>;
+  setup_token: string | null;
+  setup_token_expira: Timestamp | null;
+  session_version: Generated<number>;
 }
 
 export interface SolicitacoesAcessoTable {
   id: Generated<string>;
   email: string;
   criado_em: Generated<Timestamp>;
+}
+
+export interface RateLimitsTable {
+  chave: string;
+  tentativas: Generated<number>;
+  janela_inicio: Generated<Timestamp>;
 }
 
 export interface ContainersTable {
@@ -131,4 +140,5 @@ export interface Database {
   programacoes: ProgramacoesTable;
   coletas: ColetasTable;
   solicitacoes_acesso: SolicitacoesAcessoTable;
+  rate_limits: RateLimitsTable;
 }
