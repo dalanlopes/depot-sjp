@@ -127,7 +127,7 @@ export default function ProgramacaoClient() {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="card p-5 max-w-xl space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium block mb-1.5">Data da Retirada</label>
             <input
@@ -150,7 +150,7 @@ export default function ProgramacaoClient() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium block mb-1.5">Destino</label>
             <select className="input" value={destino} onChange={(e) => setDestino(e.target.value as SolicitanteTipo)}>

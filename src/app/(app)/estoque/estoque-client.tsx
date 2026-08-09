@@ -118,7 +118,7 @@ export default function EstoqueClient() {
           onClick={() => setSelecionado(null)}
         >
           <div
-            className="card p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
+            className="card p-4 sm:p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

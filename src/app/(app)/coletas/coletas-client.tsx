@@ -374,6 +374,7 @@ export default function ColetasClient() {
         </div>
 
         <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
@@ -413,6 +414,7 @@ export default function ColetasClient() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

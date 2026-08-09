@@ -36,7 +36,7 @@ function TabCheckboxes({
     else onChange([...selected, tab]);
   }
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {ALL_TABS.map((tab) => (
         <label key={tab} className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={selected.includes(tab)} onChange={() => toggle(tab)} />
@@ -264,6 +264,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
         {loading ? (
           <p className="text-sm text-[var(--muted)]">Carregando...</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[var(--muted)] border-b border-[var(--border)]">
@@ -345,6 +346,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

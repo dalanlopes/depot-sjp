@@ -389,7 +389,7 @@ export default function OficinaClient({
           onClick={() => setHistoryOpen(false)}
         >
           <div
-            className="card p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
+            className="card p-4 sm:p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -400,6 +400,7 @@ export default function OficinaClient({
             </div>
             {historyLoading && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
             {!historyLoading && (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
@@ -476,6 +477,7 @@ export default function OficinaClient({
                   )}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </div>
