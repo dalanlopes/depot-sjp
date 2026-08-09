@@ -88,7 +88,7 @@ export default function ProgramacaoCard({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series7d} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, (max: number) => Math.max(max, metaDiaria)]} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(79,70,229,0.06)" }} />
             <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => (v === "concluido" ? "Concluído" : "A realizar")} />
             <ReferenceLine y={metaDiaria} stroke="var(--muted)" strokeDasharray="4 4" label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }} />

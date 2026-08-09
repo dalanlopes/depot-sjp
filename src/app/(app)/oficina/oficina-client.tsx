@@ -264,7 +264,7 @@ export default function OficinaClient({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
               <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, (max: number) => Math.max(max, metaDiaria)]} />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
               <ReferenceLine
                 y={metaDiaria}
@@ -369,8 +369,8 @@ export default function OficinaClient({
 
       <div className="card p-4">
         <h2 className="text-sm font-semibold mb-3">Consultar histórico de reparos</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+          <div className="w-full sm:w-auto">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">Data</label>
             <input
               type="date"
@@ -379,7 +379,7 @@ export default function OficinaClient({
               onChange={(e) => abrirHistorico(e.target.value)}
             />
           </div>
-          <button type="button" className="btn btn-secondary" onClick={() => abrirHistorico(historyDate)}>
+          <button type="button" className="btn btn-secondary w-full sm:w-auto" onClick={() => abrirHistorico(historyDate)}>
             Ver reparados
           </button>
         </div>

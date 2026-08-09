@@ -5,7 +5,7 @@
   --foreground: #171923;
   --card: #ffffff;
   --border: #e6e8ef;
-  --primary: #4f46e5;
+  --primary: #059669;
   --primary-foreground: #ffffff;
   --muted: #6b7280;
   --success: #16a34a;
@@ -38,7 +38,7 @@ body {
 }
 .input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
 }
 
 .btn {
@@ -53,7 +53,7 @@ body {
   color: var(--primary-foreground);
 }
 .btn-primary:hover {
-  background: #4338ca;
+  background: #047857;
 }
 .btn-secondary {
   background: #fff;

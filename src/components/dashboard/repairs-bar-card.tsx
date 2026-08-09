@@ -61,7 +61,7 @@ export default function RepairsBarCard({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, (max: number) => Math.max(max, metaDiaria)]} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
             <ReferenceLine
               y={metaDiaria}
@@ -79,13 +79,13 @@ export default function RepairsBarCard({
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-2 gap-3 text-center">
-        <div>
-          <p className="text-xs text-[var(--muted)]">Reparados hoje</p>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-gray-50 border border-[var(--border)] px-3 py-2.5 text-center">
+          <p className="text-xs text-[var(--muted)] mb-0.5">Reparados hoje</p>
           <p className="text-xl font-bold">{reparadosHoje}</p>
         </div>
-        <div>
-          <p className="text-xs text-[var(--muted)]">Faltam para a meta</p>
+        <div className="rounded-xl bg-gray-50 border border-[var(--border)] px-3 py-2.5 text-center">
+          <p className="text-xs text-[var(--muted)] mb-0.5">Faltam para a meta</p>
           <p className={`text-xl font-bold ${atingiuMeta ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
             {faltam}
           </p>

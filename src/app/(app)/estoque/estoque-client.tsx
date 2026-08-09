@@ -128,7 +128,7 @@ export default function EstoqueClient() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end mb-4">
               <div>
                 <label className="text-xs font-medium text-[var(--muted)] block mb-1">Buscar número</label>
                 <input

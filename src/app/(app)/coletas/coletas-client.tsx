@@ -196,19 +196,24 @@ export default function ColetasClient() {
       setPendMessage({ type: "error", text: "Os containers precisam ser diferentes." });
       return;
     }
-    if (containers.length > itens.length) {
-      setPendMessage({ type: "error", text: `Só restam ${itens.length} vaga(s) pendente(s) nessa programação.` });
-      return;
-    }
 
     setConfirmando(programacaoId);
     for (let i = 0; i < containers.length; i++) {
       const pendente = itens[i];
-      const res = await fetch(`/api/coletas/${pendente.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm }),
-      });
+      // Dentro do número de vagas pendentes, preenche a vaga existente.
+      // Além disso (2º container no mesmo CM sem vaga formal), cria um
+      // registro extra direto vinculado à mesma programação.
+      const res = pendente
+        ? await fetch(`/api/coletas/${pendente.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm }),
+          })
+        : await fetch(`/api/programacao/${programacaoId}/coletas`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm }),
+          });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setPendMessage({ type: "error", text: data.error ?? `Erro ao confirmar o container ${containers[i]}.` });
@@ -319,7 +324,7 @@ export default function ColetasClient() {
                               {confirmando === programacaoId ? "Salvando..." : "Confirmar"}
                             </button>
                           </div>
-                          {form.containers.length < 2 && g.itens.length > 1 && (
+                          {form.containers.length < 2 && (
                             <button
                               type="button"
                               onClick={() => addContainerField(programacaoId)}
@@ -346,8 +351,8 @@ export default function ColetasClient() {
 
       <div>
         <h2 className="text-sm font-semibold mb-3">Relatório de Saídas</h2>
-        <div className="card p-4 mb-4 flex flex-wrap gap-3 items-end">
-          <div>
+        <div className="card p-4 mb-4 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
+          <div className="w-full sm:w-auto">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">De</label>
             <input
               type="date"
@@ -356,7 +361,7 @@ export default function ColetasClient() {
               onChange={(e) => setFiltroInicio(e.target.value)}
             />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">Até</label>
             <input
               type="date"
@@ -365,10 +370,10 @@ export default function ColetasClient() {
               onChange={(e) => setFiltroFim(e.target.value)}
             />
           </div>
-          <button onClick={loadReport} className="btn btn-secondary" type="button">
+          <button onClick={loadReport} className="btn btn-secondary w-full sm:w-auto" type="button">
             Atualizar
           </button>
-          <span className="text-xs text-[var(--muted)] ml-auto">
+          <span className="text-xs text-[var(--muted)] sm:ml-auto">
             {loadingReport ? "Carregando..." : `${rows.length} saída(s) no período`}
           </span>
         </div>
