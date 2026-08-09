@@ -18,9 +18,14 @@ function createDb() {
 
   const pool = new Pool({
     connectionString,
-    // Valida o certificado do Postgres (Supabase) em vez de aceitar
-    // qualquer um: evita interceptação da conexão com o banco.
-    ssl: connectionString.includes("localhost") ? undefined : { rejectUnauthorized: true },
+    // O pooler do Supabase (Supavisor) apresenta um certificado que não bate
+    // com a cadeia de CAs públicas confiada pelo Node (rejectUnauthorized:true
+    // derruba a conexão com "self-signed certificate in certificate chain").
+    // A conexão continua criptografada (TLS), só não valida o certificado
+    // contra uma CA pública — mesma configuração já usada antes.
+    ssl: connectionString.includes("localhost")
+      ? undefined
+      : { rejectUnauthorized: false },
     max: 5,
   });
 

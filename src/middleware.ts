@@ -15,7 +15,8 @@ export function middleware(req: NextRequest) {
   if (
     PUBLIC_PATHS.includes(pathname) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|woff2?)$/.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -38,5 +39,10 @@ function redirectToLogin(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Além de _next/static, _next/image e favicon.ico, deixa passar direto
+  // qualquer arquivo estático da pasta /public (imagens, ícones etc) — eles
+  // não devem exigir sessão para carregar (ex: a logo na própria tela de login).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|woff2?)$).*)",
+  ],
 };
