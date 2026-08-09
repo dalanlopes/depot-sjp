@@ -76,21 +76,26 @@ export default function ProgramacaoClient() {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
-    const res = await fetch("/api/programacao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dataRetirada, solicitante, destino, armador, quantidade }),
-    });
-    const data = await res.json();
-    setSaving(false);
-    if (res.ok) {
-      setMessage({ type: "ok", text: "Programação registrada com sucesso." });
-      setSolicitante("");
-      setDestino("MATRIZ");
-      setQuantidade(1);
-      loadRows();
-    } else {
-      setMessage({ type: "error", text: data.error ?? "Erro ao registrar. Verifique os campos." });
+    try {
+      const res = await fetch("/api/programacao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataRetirada, solicitante, destino, armador, quantidade }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setMessage({ type: "ok", text: "Programação registrada com sucesso." });
+        setSolicitante("");
+        setDestino("MATRIZ");
+        setQuantidade(1);
+        loadRows();
+      } else {
+        setMessage({ type: "error", text: data.error ?? "Erro ao registrar. Verifique os campos." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Erro ao conectar. Tente novamente." });
+    } finally {
+      setSaving(false);
     }
   }
 

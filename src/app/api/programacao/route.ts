@@ -77,41 +77,49 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
-  await db.transaction().execute(async (trx) => {
-    const programacao = await trx
-      .insertInto("programacoes")
-      .values({
-        data_retirada: data.dataRetirada,
-        solicitante: data.solicitante,
-        destino: data.destino as never,
-        armador: data.armador as never,
-        booking: null,
-        cm_codigo: null,
-        quantidade: data.quantidade,
-        tipo_carga: "VAZIO" as never,
-        cliente: null,
-        criado_por_id: session.userId,
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-
-    // Cria uma "vaga" pendente para cada unidade solicitada. O container e o
-    // CM de cada uma são preenchidos depois, na aba Coletas.
-    for (let i = 0; i < data.quantidade; i++) {
-      await trx
-        .insertInto("coletas")
+  try {
+    await db.transaction().execute(async (trx) => {
+      const programacao = await trx
+        .insertInto("programacoes")
         .values({
-          container_numero: null,
-          codigo_cm_veiculo: null,
-          programacao_id: programacao.id,
-          status: "PENDENTE",
+          data_retirada: data.dataRetirada,
+          solicitante: data.solicitante,
+          destino: data.destino as never,
+          armador: data.armador as never,
+          booking: null,
+          cm_codigo: null,
+          quantidade: data.quantidade,
           tipo_carga: "VAZIO" as never,
           cliente: null,
           criado_por_id: session.userId,
         })
-        .execute();
-    }
-  });
+        .returning("id")
+        .executeTakeFirstOrThrow();
+
+      // Cria uma "vaga" pendente para cada unidade solicitada. O container e o
+      // CM de cada uma são preenchidos depois, na aba Coletas.
+      for (let i = 0; i < data.quantidade; i++) {
+        await trx
+          .insertInto("coletas")
+          .values({
+            container_numero: null,
+            codigo_cm_veiculo: null,
+            programacao_id: programacao.id,
+            status: "PENDENTE",
+            tipo_carga: "VAZIO" as never,
+            cliente: null,
+            criado_por_id: session.userId,
+          })
+          .execute();
+      }
+    });
+  } catch (err) {
+    console.error("Erro ao registrar programação:", err);
+    return NextResponse.json(
+      { error: "Não foi possível registrar a programação. Tente novamente." },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }
