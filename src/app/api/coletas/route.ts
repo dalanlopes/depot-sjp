@@ -23,19 +23,14 @@ export async function GET(req: NextRequest) {
     const pendentesRaw = await db
       .selectFrom("coletas as co")
       .innerJoin("programacoes as p", "p.id", "co.programacao_id")
-      .leftJoin("containers as c", "c.numero", "co.container_numero")
       .select([
         "co.id",
-        "co.container_numero",
-        "co.codigo_cm_veiculo",
-        "co.tipo_carga",
-        "co.cliente",
+        "p.id as programacao_id",
         "p.data_retirada",
         "p.solicitante",
         "p.destino",
         "p.armador",
-        "p.booking",
-        "c.padrao",
+        "p.quantidade as programacao_quantidade",
       ])
       .where("co.status", "=", "PENDENTE")
       .orderBy("p.data_retirada", "asc")

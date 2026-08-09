@@ -43,7 +43,6 @@ export const META_DIARIA_REPAROS = 35;
 export const META_DIARIA_COLETAS = 35;
 // Meta semanal de coletas: 35/dia em dias uteis (seg-sex). Sabado/domingo contam como extra/reposicao.
 export const META_SEMANAL_COLETAS = 175;
-export const MAX_CONTAINERS_POR_PROGRAMACAO = 4;
 
 type Timestamp = string;
 
@@ -112,7 +111,7 @@ export interface ColetasTable {
   id: Generated<string>;
   data: Timestamp | null;
   container_numero: string | null;
-  codigo_cm_veiculo: string;
+  codigo_cm_veiculo: string | null;
   programacao_id: string | null;
   status: Generated<ColetaStatus>;
   tipo_carga: TipoCarga | null;

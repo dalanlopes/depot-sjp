@@ -5,6 +5,9 @@ CREATE TYPE role AS ENUM ('MECANICO', 'ANALISTA_PROGRAMACAO', 'ANALISTA_FATURAME
 CREATE TYPE armador AS ENUM ('MAERSK', 'MSC', 'HAPAG', 'ZIM', 'LOGIN');
 CREATE TYPE padrao AS ENUM ('AL', 'CG', 'OU'); -- OU = Aguardando Vistoria (ainda não classificado)
 CREATE TYPE status_container AS ENUM ('WS', 'AR', 'AE', 'RE', 'OK');
+CREATE TYPE solicitante_tipo AS ENUM ('MATRIZ', 'SJP', 'PG');
+CREATE TYPE tipo_carga_enum AS ENUM ('CHEIO', 'VAZIO');
+CREATE TYPE coleta_status AS ENUM ('PENDENTE', 'CONCLUIDO');
 
 CREATE TABLE users (
   id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -61,24 +64,42 @@ CREATE TABLE ocorrencias (
 
 CREATE INDEX idx_ocorrencias_data ON ocorrencias(data);
 
+-- Pedido de retirada: só a demanda (data, quem pediu, destino, armador,
+-- quantidade). O container e o CM de cada unidade são preenchidos depois,
+-- na aba Coletas, quando o veículo efetivamente retira. booking/cm_codigo/
+-- tipo_carga ficam como colunas legadas (não usadas pela tela atual).
 CREATE TABLE programacoes (
   id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   data_retirada    DATE NOT NULL,
-  solicitante      TEXT NOT NULL,
+  solicitante      TEXT NOT NULL DEFAULT '',
+  destino          solicitante_tipo NOT NULL DEFAULT 'SJP',
   armador          armador NOT NULL,
+  booking          TEXT,
+  cm_codigo        TEXT,
   quantidade       INTEGER NOT NULL CHECK (quantidade > 0),
+  tipo_carga       tipo_carga_enum NOT NULL DEFAULT 'VAZIO',
+  cliente          TEXT,
   criado_por_id    TEXT REFERENCES users(id),
   criado_em        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_programacoes_data ON programacoes(data_retirada);
 
+-- Uma coleta pode nascer "pendente" a partir de uma Programação (sem container
+-- nem CM ainda) e ser concluída depois, quando o analista informa o container
+-- retirado do estoque e o código do CM do veículo. Também pode ser registrada
+-- avulsa (sem programacao_id), já concluída.
 CREATE TABLE coletas (
   id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  data              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  container_numero  TEXT NOT NULL UNIQUE REFERENCES containers(numero),
-  codigo_cm_veiculo TEXT NOT NULL,
+  data              TIMESTAMPTZ DEFAULT now(),
+  container_numero  TEXT UNIQUE REFERENCES containers(numero),
+  codigo_cm_veiculo TEXT, -- nulo até a coleta ser confirmada
+  programacao_id    TEXT REFERENCES programacoes(id),
+  status            coleta_status NOT NULL DEFAULT 'CONCLUIDO',
+  tipo_carga        tipo_carga_enum,
+  cliente           TEXT,
   criado_por_id     TEXT REFERENCES users(id)
 );
 
 CREATE INDEX idx_coletas_data ON coletas(data);
+CREATE INDEX idx_coletas_programacao ON coletas(programacao_id);

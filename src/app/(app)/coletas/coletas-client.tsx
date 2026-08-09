@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { formatDateTimeBR } from "@/lib/tz";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { formatDateBR, formatDateTimeBR } from "@/lib/tz";
 import { SOLICITANTE_LABELS, type SolicitanteTipo, type TipoCarga } from "@/lib/types";
 
 interface ColetaRow {
@@ -17,16 +17,12 @@ interface ColetaRow {
 
 interface PendenteRow {
   id: string;
-  container_numero: string | null;
-  codigo_cm_veiculo: string;
-  tipo_carga: TipoCarga;
-  cliente: string | null;
+  programacao_id: string;
   data_retirada: string;
   solicitante: string;
   destino: SolicitanteTipo;
   armador: string;
-  booking: string | null;
-  padrao: string | null;
+  programacao_quantidade: number;
 }
 
 interface Summary {
@@ -54,8 +50,10 @@ export default function ColetasClient() {
   const [pendentes, setPendentes] = useState<PendenteRow[]>([]);
   const [loadingPendentes, setLoadingPendentes] = useState(true);
   const [inputContainer, setInputContainer] = useState<Record<string, string>>({});
+  const [inputCm, setInputCm] = useState<Record<string, string>>({});
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [pendMessage, setPendMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   const [codigoCm, setCodigoCm] = useState("");
   const [numero, setNumero] = useState("");
@@ -110,29 +108,55 @@ export default function ColetasClient() {
     loadReport();
   }
 
+  const grupos = useMemo(() => {
+    const map = new Map<
+      string,
+      { data_retirada: string; solicitante: string; destino: SolicitanteTipo; armador: string; quantidade: number; itens: PendenteRow[] }
+    >();
+    for (const p of pendentes) {
+      const g = map.get(p.programacao_id);
+      if (g) {
+        g.itens.push(p);
+      } else {
+        map.set(p.programacao_id, {
+          data_retirada: p.data_retirada,
+          solicitante: p.solicitante,
+          destino: p.destino,
+          armador: p.armador,
+          quantidade: p.programacao_quantidade,
+          itens: [p],
+        });
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].data_retirada.localeCompare(b[1].data_retirada));
+  }, [pendentes]);
+
   async function confirmarPendente(p: PendenteRow) {
     setConfirmando(p.id);
     setPendMessage(null);
-    const body: { containerNumero?: string } = {};
-    if (p.tipo_carga === "VAZIO") {
-      const num = inputContainer[p.id]?.trim().toUpperCase();
-      if (!num) {
-        setPendMessage({ type: "error", text: "Informe a numeração do container." });
-        setConfirmando(null);
-        return;
-      }
-      body.containerNumero = num;
+    const container = inputContainer[p.id]?.trim().toUpperCase();
+    const cm = inputCm[p.id]?.trim();
+    if (!container) {
+      setPendMessage({ type: "error", text: "Informe a numeração do container." });
+      setConfirmando(null);
+      return;
+    }
+    if (!cm) {
+      setPendMessage({ type: "error", text: "Informe o código do CM." });
+      setConfirmando(null);
+      return;
     }
     const res = await fetch(`/api/coletas/${p.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ containerNumero: container, codigoCmVeiculo: cm }),
     });
     const data = await res.json();
     setConfirmando(null);
     if (res.ok) {
-      setPendMessage({ type: "ok", text: `Coleta do CM ${p.codigo_cm_veiculo} concluída.` });
+      setPendMessage({ type: "ok", text: `Coleta confirmada: ${container} (CM ${cm}).` });
       setInputContainer((prev) => ({ ...prev, [p.id]: "" }));
+      setInputCm((prev) => ({ ...prev, [p.id]: "" }));
       refreshAll();
     } else {
       setPendMessage({ type: "error", text: data.error ?? "Erro ao confirmar coleta." });
@@ -188,65 +212,60 @@ export default function ColetasClient() {
 
       <div>
         <h2 className="text-sm font-semibold mb-3">Coletas pendentes (vindas da Programação)</h2>
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
-                <th className="px-4 py-3 font-medium">Data prevista</th>
-                <th className="px-4 py-3 font-medium">CM</th>
-                <th className="px-4 py-3 font-medium">Solicitante</th>
-                <th className="px-4 py-3 font-medium">Destino</th>
-                <th className="px-4 py-3 font-medium">Armador</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Container</th>
-                <th className="px-4 py-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendentes.map((p) => (
-                <tr key={p.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3">{p.data_retirada}</td>
-                  <td className="px-4 py-3 font-medium">{p.codigo_cm_veiculo}</td>
-                  <td className="px-4 py-3">{p.solicitante || "—"}</td>
-                  <td className="px-4 py-3">{SOLICITANTE_LABELS[p.destino]}</td>
-                  <td className="px-4 py-3">{p.armador}</td>
-                  <td className="px-4 py-3">
-                    <span className={`badge ${p.tipo_carga === "CHEIO" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
-                      {p.tipo_carga === "CHEIO" ? "Cheio" : "Vazio"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.tipo_carga === "CHEIO" ? (
-                      <span className="font-medium">{p.container_numero}</span>
-                    ) : (
+        {loadingPendentes && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
+        {!loadingPendentes && grupos.length === 0 && (
+          <div className="card p-10 text-center text-sm text-[var(--muted)]">
+            Nenhuma coleta pendente no momento.
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {grupos.map(([programacaoId, g]) => (
+            <div key={programacaoId} className="card overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setExpandedGroup((prev) => (prev === programacaoId ? null : programacaoId))}
+                className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold">{formatDateBR(`${g.data_retirada}T12:00:00-03:00`)}</span>
+                  <span className="badge bg-amber-100 text-amber-700">
+                    {g.itens.length} pendente{g.itens.length > 1 ? "s" : ""} de {g.quantidade}
+                  </span>
+                </div>
+                <p className="text-sm text-[var(--muted)]">{g.solicitante || "—"}</p>
+                <p className="text-xs text-[var(--muted)] mt-1">
+                  {SOLICITANTE_LABELS[g.destino]} · {g.armador}
+                </p>
+              </button>
+              {expandedGroup === programacaoId && (
+                <div className="border-t border-[var(--border)] p-4 bg-gray-50 space-y-3">
+                  {g.itens.map((p) => (
+                    <div key={p.id} className="flex flex-wrap gap-2 items-center">
                       <input
-                        className="input max-w-[160px]"
+                        className="input flex-1 min-w-[140px]"
                         placeholder="Número do container"
                         value={inputContainer[p.id] ?? ""}
                         onChange={(e) => setInputContainer((prev) => ({ ...prev, [p.id]: e.target.value }))}
                       />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      className="btn btn-primary text-xs px-3 py-1.5 disabled:opacity-50"
-                      onClick={() => confirmarPendente(p)}
-                      disabled={confirmando === p.id}
-                    >
-                      {confirmando === p.id ? "Salvando..." : "Confirmar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!loadingPendentes && pendentes.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-[var(--muted)]">
-                    Nenhuma coleta pendente no momento.
-                  </td>
-                </tr>
+                      <input
+                        className="input flex-1 min-w-[120px]"
+                        placeholder="Código CM"
+                        value={inputCm[p.id] ?? ""}
+                        onChange={(e) => setInputCm((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                      />
+                      <button
+                        className="btn btn-primary text-xs px-3 py-1.5 disabled:opacity-50"
+                        onClick={() => confirmarPendente(p)}
+                        disabled={confirmando === p.id}
+                      >
+                        {confirmando === p.id ? "Salvando..." : "Confirmar"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          ))}
         </div>
         {pendMessage && (
           <p className={`text-sm mt-2 ${pendMessage.type === "ok" ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
@@ -341,7 +360,6 @@ export default function ColetasClient() {
                 <th className="px-4 py-3 font-medium">Número</th>
                 <th className="px-4 py-3 font-medium">Armador</th>
                 <th className="px-4 py-3 font-medium">Padrão</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
                 <th className="px-4 py-3 font-medium">Código CM</th>
                 <th className="px-4 py-3 font-medium">Data da Saída</th>
               </tr>
@@ -352,14 +370,13 @@ export default function ColetasClient() {
                   <td className="px-4 py-3 font-medium">{r.container_numero ?? "—"}</td>
                   <td className="px-4 py-3">{r.armador ?? "—"}</td>
                   <td className="px-4 py-3">{r.padrao ?? "—"}</td>
-                  <td className="px-4 py-3">{r.tipo_carga === "CHEIO" ? "Cheio" : "Vazio"}</td>
                   <td className="px-4 py-3">{r.codigo_cm_veiculo}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatDateTimeBR(r.data)}</td>
                 </tr>
               ))}
               {!loadingReport && rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-[var(--muted)]">
+                  <td colSpan={5} className="px-4 py-10 text-center text-[var(--muted)]">
                     Nenhuma saída registrada no período.
                   </td>
                 </tr>

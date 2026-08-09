@@ -3,39 +3,16 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab } from "@/lib/roles";
-import { ARMADORES, SOLICITANTES, MAX_CONTAINERS_POR_PROGRAMACAO } from "@/lib/types";
+import { ARMADORES, SOLICITANTES } from "@/lib/types";
 import { addDaysBR, todayBR } from "@/lib/tz";
 
-const containerCheioSchema = z.object({
-  containerNumero: z.string().trim().min(4),
-  cliente: z.string().trim().min(1),
+const schema = z.object({
+  dataRetirada: z.string().min(1),
+  solicitante: z.string().trim().min(1),
+  destino: z.enum(SOLICITANTES as [string, ...string[]]),
+  armador: z.enum(ARMADORES as [string, ...string[]]),
+  quantidade: z.number().int().min(1),
 });
-
-const schema = z
-  .object({
-    dataRetirada: z.string().min(1),
-    solicitante: z.string().trim().min(1),
-    destino: z.enum(SOLICITANTES as [string, ...string[]]),
-    armador: z.enum(ARMADORES as [string, ...string[]]),
-    booking: z.string().trim().optional(),
-    cmCodigo: z.string().min(1),
-    quantidade: z.number().int().min(1).max(MAX_CONTAINERS_POR_PROGRAMACAO).optional(),
-    tipoCarga: z.enum(["VAZIO", "CHEIO"]),
-    containersCheio: z.array(containerCheioSchema).max(MAX_CONTAINERS_POR_PROGRAMACAO).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.tipoCarga === "CHEIO") {
-      if (!data.containersCheio || data.containersCheio.length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Informe ao menos um container (com cliente) para container cheio.",
-          path: ["containersCheio"],
-        });
-      }
-    } else if (!data.quantidade) {
-      ctx.addIssue({ code: "custom", message: "Informe a quantidade de containers.", path: ["quantidade"] });
-    }
-  });
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -49,11 +26,22 @@ export async function GET(req: NextRequest) {
   const desde = addDaysBR(todayBR(), -Math.abs(dias));
 
   const rows = await db
-    .selectFrom("programacoes")
-    .selectAll()
-    .where("data_retirada", ">=", desde)
-    .orderBy("data_retirada", "desc")
-    .orderBy("criado_em", "desc")
+    .selectFrom("programacoes as p")
+    .leftJoin("coletas as co", "co.programacao_id", "p.id")
+    .select([
+      "p.id",
+      "p.data_retirada",
+      "p.solicitante",
+      "p.destino",
+      "p.armador",
+      "p.quantidade",
+      "p.criado_em",
+      (eb) => eb.fn.count<number>("co.id").filterWhere("co.status", "=", "CONCLUIDO").as("realizada"),
+    ])
+    .where("p.data_retirada", ">=", desde)
+    .groupBy(["p.id"])
+    .orderBy("p.data_retirada", "desc")
+    .orderBy("p.criado_em", "desc")
     .limit(200)
     .execute();
 
@@ -61,6 +49,7 @@ export async function GET(req: NextRequest) {
   // plain YYYY-MM-DD string so the client never has to guess the shape.
   const programacoes = rows.map((p) => ({
     ...p,
+    realizada: Number(p.realizada),
     data_retirada:
       (p.data_retirada as unknown) instanceof Date
         ? (p.data_retirada as unknown as Date).toISOString().slice(0, 10)
@@ -87,7 +76,6 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
-  const quantidade = data.tipoCarga === "CHEIO" ? data.containersCheio!.length : data.quantidade!;
 
   await db.transaction().execute(async (trx) => {
     const programacao = await trx
@@ -97,46 +85,31 @@ export async function POST(req: NextRequest) {
         solicitante: data.solicitante,
         destino: data.destino as never,
         armador: data.armador as never,
-        booking: data.booking || null,
-        cm_codigo: data.cmCodigo,
-        quantidade,
-        tipo_carga: data.tipoCarga as never,
+        booking: null,
+        cm_codigo: null,
+        quantidade: data.quantidade,
+        tipo_carga: "VAZIO" as never,
         cliente: null,
         criado_por_id: session.userId,
       })
       .returning("id")
       .executeTakeFirstOrThrow();
 
-    if (data.tipoCarga === "CHEIO") {
-      for (const item of data.containersCheio!) {
-        await trx
-          .insertInto("coletas")
-          .values({
-            container_numero: item.containerNumero.trim().toUpperCase(),
-            codigo_cm_veiculo: data.cmCodigo,
-            programacao_id: programacao.id,
-            status: "PENDENTE",
-            tipo_carga: "CHEIO" as never,
-            cliente: item.cliente,
-            criado_por_id: session.userId,
-          })
-          .execute();
-      }
-    } else {
-      for (let i = 0; i < quantidade; i++) {
-        await trx
-          .insertInto("coletas")
-          .values({
-            container_numero: null,
-            codigo_cm_veiculo: data.cmCodigo,
-            programacao_id: programacao.id,
-            status: "PENDENTE",
-            tipo_carga: "VAZIO" as never,
-            cliente: null,
-            criado_por_id: session.userId,
-          })
-          .execute();
-      }
+    // Cria uma "vaga" pendente para cada unidade solicitada. O container e o
+    // CM de cada uma são preenchidos depois, na aba Coletas.
+    for (let i = 0; i < data.quantidade; i++) {
+      await trx
+        .insertInto("coletas")
+        .values({
+          container_numero: null,
+          codigo_cm_veiculo: null,
+          programacao_id: programacao.id,
+          status: "PENDENTE",
+          tipo_carga: "VAZIO" as never,
+          cliente: null,
+          criado_por_id: session.userId,
+        })
+        .execute();
     }
   });
 

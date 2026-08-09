@@ -5,7 +5,8 @@ import { getSession } from "@/lib/auth";
 import { canRegisterCollection } from "@/lib/roles";
 
 const schema = z.object({
-  containerNumero: z.string().min(4).optional(),
+  containerNumero: z.string().min(4, "Informe a numeração do container."),
+  codigoCmVeiculo: z.string().min(1, "Informe o código do CM."),
   data: z.string().optional(),
 });
 
@@ -20,7 +21,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Dados inválidos." },
+      { status: 400 }
+    );
   }
 
   const pendente = await db
@@ -34,37 +38,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Coleta pendente não encontrada." }, { status: 404 });
   }
 
-  let numero = pendente.container_numero;
+  const numero = parsed.data.containerNumero.trim().toUpperCase();
 
-  if (pendente.tipo_carga === "VAZIO") {
-    const informado = parsed.data.containerNumero?.trim().toUpperCase();
-    if (!informado) {
-      return NextResponse.json({ error: "Informe a numeração do container." }, { status: 400 });
-    }
-    const container = await db
-      .selectFrom("containers")
-      .selectAll()
-      .where("numero", "=", informado)
-      .executeTakeFirst();
-    if (!container) {
-      return NextResponse.json({ error: "Container não encontrado no estoque." }, { status: 404 });
-    }
-    if (container.status !== "OK") {
-      return NextResponse.json(
-        { error: `Container não está disponível (status atual: ${container.status}).` },
-        { status: 409 }
-      );
-    }
-    const jaColetado = await db
-      .selectFrom("coletas")
-      .select("id")
-      .where("container_numero", "=", informado)
-      .where("status", "=", "CONCLUIDO")
-      .executeTakeFirst();
-    if (jaColetado) {
-      return NextResponse.json({ error: "Este container já foi coletado." }, { status: 409 });
-    }
-    numero = informado;
+  const container = await db
+    .selectFrom("containers")
+    .selectAll()
+    .where("numero", "=", numero)
+    .executeTakeFirst();
+  if (!container) {
+    return NextResponse.json({ error: "Container não encontrado no estoque." }, { status: 404 });
+  }
+  if (container.status !== "OK") {
+    return NextResponse.json(
+      { error: `Container não está disponível (status atual: ${container.status}).` },
+      { status: 409 }
+    );
+  }
+  const jaColetado = await db
+    .selectFrom("coletas")
+    .select("id")
+    .where("container_numero", "=", numero)
+    .where("status", "=", "CONCLUIDO")
+    .executeTakeFirst();
+  if (jaColetado) {
+    return NextResponse.json({ error: "Este container já foi coletado." }, { status: 409 });
   }
 
   let dataSaida = new Date().toISOString();
@@ -78,7 +75,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await db
     .updateTable("coletas")
-    .set({ container_numero: numero, status: "CONCLUIDO", data: dataSaida })
+    .set({
+      container_numero: numero,
+      codigo_cm_veiculo: parsed.data.codigoCmVeiculo.trim(),
+      status: "CONCLUIDO",
+      data: dataSaida,
+    })
     .where("id", "=", id)
     .execute();
 
