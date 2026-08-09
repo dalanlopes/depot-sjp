@@ -8,7 +8,7 @@ import type { SessionPayload } from "@/lib/auth";
 export default function Nav({ session }: { session: SessionPayload }) {
   const pathname = usePathname();
   const router = useRouter();
-  const tabs = session.tabs;
+  const tabs = session.tabs ?? [];
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });

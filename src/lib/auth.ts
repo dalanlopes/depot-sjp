@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "./types";
-import type { Tab } from "./roles";
+import { resolveTabs, type Tab } from "./roles";
 
 const SESSION_COOKIE = "depot_session";
 const alg = "HS256";
@@ -63,7 +63,15 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return payload as unknown as SessionPayload;
+    const p = payload as unknown as SessionPayload;
+    // Sessões antigas (criadas antes das permissões por usuário) não têm
+    // "tabs"/"podeVerFaturamento" no token: preenche com o padrão do perfil
+    // para não quebrar a interface até o usuário logar de novo.
+    return {
+      ...p,
+      tabs: resolveTabs(p.role, p.tabs),
+      podeVerFaturamento: p.podeVerFaturamento ?? false,
+    };
   } catch {
     return null;
   }
