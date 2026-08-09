@@ -66,14 +66,16 @@ export default function ProgramacaoCard({
         <h3 className="text-sm font-semibold">Programação</h3>
         <span className="text-lg">🗓️</span>
       </div>
-      <div className="rounded-xl bg-indigo-50 px-3 py-2.5 mb-3 mt-3 flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
-        <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
-        <span>
-          <strong>{coletadosSemana}</strong> coletados esta semana (meta {metaSemanal})
-        </span>
-        <span className={faltamSemana === 0 ? "text-green-700" : "text-amber-700"}>
-          <strong>{faltamSemana}</strong> faltam para fechar a semana
-        </span>
+      <div className="flex justify-center mb-3 mt-3">
+        <div className="rounded-xl bg-indigo-50 px-3 py-2.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
+          <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
+          <span>
+            <strong>{coletadosSemana}</strong> coletados esta semana (meta {metaSemanal})
+          </span>
+          <span className={faltamSemana === 0 ? "text-green-700" : "text-amber-700"}>
+            <strong>{faltamSemana}</strong> faltam para fechar a semana
+          </span>
+        </div>
       </div>
 
       <div className="flex justify-center gap-4 mb-3 text-xs">

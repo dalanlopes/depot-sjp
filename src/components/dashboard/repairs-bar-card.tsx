@@ -3,6 +3,7 @@
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   Tooltip,
   ReferenceLine,
@@ -44,6 +45,11 @@ export default function RepairsBarCard({
   series7d: Ponto[];
   metaDiaria: number;
 }) {
+  const hoje = series7d[series7d.length - 1];
+  const reparadosHoje = hoje?.quantidade ?? 0;
+  const faltam = Math.max(metaDiaria - reparadosHoje, 0);
+  const atingiuMeta = reparadosHoje >= metaDiaria;
+
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-3">
@@ -57,15 +63,31 @@ export default function RepairsBarCard({
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
             <ReferenceLine
               y={metaDiaria}
-              stroke="var(--danger)"
+              stroke="var(--muted)"
               strokeDasharray="4 4"
               label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }}
             />
-            <Bar dataKey="quantidade" fill="var(--success)" radius={[6, 6, 0, 0]} maxBarSize={28}>
-              <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fill: "var(--success)", fontWeight: 600 }} />
+            <Bar dataKey="quantidade" radius={[6, 6, 0, 0]} maxBarSize={28}>
+              <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fontWeight: 600 }} />
+              {series7d.map((p) => (
+                <Cell key={p.data} fill={p.quantidade >= metaDiaria ? "var(--success)" : "var(--danger)"} />
+              ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-2 gap-3 text-center">
+        <div>
+          <p className="text-xs text-[var(--muted)]">Reparados hoje</p>
+          <p className="text-xl font-bold">{reparadosHoje}</p>
+        </div>
+        <div>
+          <p className="text-xs text-[var(--muted)]">Faltam para a meta</p>
+          <p className={`text-xl font-bold ${atingiuMeta ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
+            {faltam}
+          </p>
+        </div>
       </div>
     </div>
   );
