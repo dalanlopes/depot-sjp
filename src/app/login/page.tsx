@@ -14,7 +14,7 @@ export default async function LoginPage() {
           <img
             src="/logo-vale-do-tibagi.png"
             alt="Vale do Tibagi"
-            className="mx-auto h-14 w-auto mb-3"
+            className="mx-auto h-24 w-auto mb-3"
           />
           <h1 className="text-xl font-semibold">Depot SJP</h1>
           <p className="text-sm text-[var(--muted)] mt-1">Versão 1.0</p>
