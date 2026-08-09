@@ -68,9 +68,7 @@ export default function DashboardClient() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <RepairsBarCard
         series7d={summary.reparosSeries7d}
-        series30d={summary.reparosSeries30d}
         metaDiaria={summary.metaDiariaReparos}
-        showFinance={summary.showFinance}
       />
       <EstoqueCard
         alimentoOk={summary.estoque.alimentoOk}

@@ -22,11 +22,7 @@ export default function EstoqueCard({
         <h3 className="text-sm font-semibold">Estoque</h3>
         <span className="text-lg">📦</span>
       </div>
-      <p className="text-xs text-[var(--muted)] mb-4">
-        Disponibilidade de containers no pátio (sem contar já coletados)
-      </p>
-
-      <div className="mb-4">
+      <div className="mb-4 mt-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-green-700">OK para coletar · Alimento (por armador)</p>
           <span className="text-lg font-bold text-green-700">{alimentoOk}</span>

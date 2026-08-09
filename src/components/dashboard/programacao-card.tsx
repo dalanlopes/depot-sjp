@@ -66,11 +66,7 @@ export default function ProgramacaoCard({
         <h3 className="text-sm font-semibold">Programação</h3>
         <span className="text-lg">🗓️</span>
       </div>
-      <p className="text-xs text-[var(--muted)] mb-3">
-        Próximos 7 dias · solicitado pela matriz/PG · meta {metaDiaria}/dia (seg-sex)
-      </p>
-
-      <div className="rounded-xl bg-indigo-50 px-3 py-2.5 mb-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+      <div className="rounded-xl bg-indigo-50 px-3 py-2.5 mb-3 mt-3 flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
         <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
         <span>
           <strong>{coletadosSemana}</strong> coletados esta semana (meta {metaSemanal})
@@ -80,7 +76,7 @@ export default function ProgramacaoCard({
         </span>
       </div>
 
-      <div className="flex gap-4 mb-3 text-xs">
+      <div className="flex justify-center gap-4 mb-3 text-xs">
         <span><strong>{totalSolicitado}</strong> solicitados</span>
         <span className="text-green-700"><strong>{totalConcluido}</strong> concluídos</span>
         <span className="text-amber-700"><strong>{totalPendente}</strong> a realizar</span>
