@@ -17,8 +17,8 @@ function iniciais(nome: string | null) {
 
 export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrencia[] }) {
   return (
-    <div className="card p-5 h-[260px] flex flex-col">
-      <div className="flex items-center justify-between mb-1 shrink-0">
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base">⚠️</span>
           <h3 className="text-sm font-semibold">Ocorrências</h3>
@@ -26,7 +26,7 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
         <span className="badge bg-amber-100 text-amber-700">{ocorrencias.length} no período</span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 mt-3">
+      <div className="max-h-72 overflow-y-auto overflow-x-hidden pr-1 mt-3">
         {ocorrencias.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
             <span className="text-2xl">✅</span>
