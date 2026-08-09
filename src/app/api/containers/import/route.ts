@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
+import { Readable } from "stream";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canImportData } from "@/lib/roles";
@@ -27,10 +28,7 @@ function cellPlain(v: ExcelJS.CellValue): string | number | Date | null {
   return v as string | number;
 }
 
-async function sheetToMatrix(buffer: Buffer): Promise<unknown[][]> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
-  const worksheet = workbook.worksheets[0];
+function worksheetToMatrix(worksheet: ExcelJS.Worksheet): unknown[][] {
   const matrix: unknown[][] = [];
   worksheet.eachRow({ includeEmpty: true }, (row) => {
     const vals = row.values as ExcelJS.CellValue[];
@@ -41,6 +39,38 @@ async function sheetToMatrix(buffer: Buffer): Promise<unknown[][]> {
     matrix.push(linha);
   });
   return matrix;
+}
+
+// Lê o arquivo enviado (.xlsx ou .csv) e devolve a matriz de células.
+// .xls (formato binário antigo do Excel 97-2003) não é suportado — pedimos
+// para o usuário salvar como .xlsx ou .csv.
+async function sheetToMatrix(buffer: Buffer, filename: string): Promise<unknown[][]> {
+  const lower = filename.toLowerCase();
+  const workbook = new ExcelJS.Workbook();
+
+  if (lower.endsWith(".csv")) {
+    const worksheet = await workbook.csv.read(Readable.from(buffer) as never);
+    return worksheetToMatrix(worksheet);
+  }
+
+  if (lower.endsWith(".xls")) {
+    throw new Error(
+      "Formato .xls (Excel 97-2003) não é suportado. Abra a planilha no Excel e salve como .xlsx ou .csv, depois envie novamente."
+    );
+  }
+
+  try {
+    await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+  } catch {
+    throw new Error(
+      "Não foi possível ler o arquivo como planilha Excel (.xlsx). Verifique se o arquivo não está corrompido ou salve como .csv."
+    );
+  }
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error("A planilha enviada não tem nenhuma aba com dados.");
+  }
+  return worksheetToMatrix(worksheet);
 }
 
 function matrixToObjects(matrix: unknown[][]): Record<string, unknown>[] {
@@ -208,8 +238,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
 
+  try {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const matrix = await sheetToMatrix(buffer);
+  const matrix = await sheetToMatrix(buffer, file.name);
 
   const rows = parseTerminalReport(matrix) ?? parseSimpleFormat(matrix);
 
@@ -301,4 +332,9 @@ export async function POST(req: NextRequest) {
     mudancasStatus,
     errors,
   });
+  } catch (err) {
+    console.error("Erro na importação de containers:", err);
+    const msg = err instanceof Error ? err.message : "Erro inesperado ao processar a planilha.";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 }
