@@ -8,7 +8,7 @@ import { addDaysBR, todayBR } from "@/lib/tz";
 
 const schema = z.object({
   dataRetirada: z.string().min(1),
-  solicitante: z.string().trim().min(1),
+  solicitante: z.string().trim().min(1).transform((v) => v.toUpperCase()),
   destino: z.enum(SOLICITANTES as [string, ...string[]]),
   armador: z.enum(ARMADORES as [string, ...string[]]),
   quantidade: z.number().int().min(1),

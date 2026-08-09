@@ -40,6 +40,7 @@ export default function ProgramacaoClient() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detalhes, setDetalhes] = useState<Record<string, ColetaDetalhe[]>>({});
   const [loadingDetalhe, setLoadingDetalhe] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
 
   const loadRows = useCallback(async () => {
     setLoadingRows(true);
@@ -64,6 +65,19 @@ export default function ProgramacaoClient() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [rows]);
+
+  async function excluirProgramacao(r: ProgramacaoRow) {
+    if (!confirm(`Excluir a programação de ${r.solicitante || "—"} (${formatDateBR(`${r.data_retirada}T12:00:00-03:00`)})?`)) return;
+    setExcluindo(r.id);
+    const res = await fetch(`/api/programacao/${r.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setExcluindo(null);
+    if (res.ok) {
+      loadRows();
+    } else {
+      setMessage({ type: "error", text: data.error ?? "Erro ao excluir a programação." });
+    }
+  }
 
   async function toggleCard(id: string) {
     if (expandedId === id) {
@@ -127,9 +141,9 @@ export default function ProgramacaoClient() {
           <div>
             <label className="text-sm font-medium block mb-1.5">Solicitante</label>
             <input
-              className="input"
+              className="input uppercase"
               value={solicitante}
-              onChange={(e) => setSolicitante(e.target.value)}
+              onChange={(e) => setSolicitante(e.target.value.toUpperCase())}
               placeholder="Nome de quem solicitou"
               required
             />
@@ -202,14 +216,14 @@ export default function ProgramacaoClient() {
                   const completo = r.realizada >= r.quantidade;
                   const faltam = Math.max(r.quantidade - r.realizada, 0);
                   return (
-                    <div key={r.id} className="border-b border-[var(--border)] last:border-0">
+                    <div key={r.id} className="border-b border-[var(--border)] last:border-0 flex items-stretch">
                       <button
                         type="button"
                         onClick={() => toggleCard(r.id)}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3"
+                        className="flex-1 text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3 min-w-0"
                       >
-                        <div>
-                          <p className="text-sm font-medium">{r.solicitante || "—"}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{r.solicitante || "—"}</p>
                           <p className="text-xs text-[var(--muted)] mt-0.5">
                             {SOLICITANTE_LABELS[r.destino]} · {r.armador}
                           </p>
@@ -217,6 +231,15 @@ export default function ProgramacaoClient() {
                         <span className={`badge shrink-0 ${completo ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
                           {r.realizada} realizada{r.realizada === 1 ? "" : "s"} · {faltam} falta{faltam === 1 ? "" : "m"}
                         </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => excluirProgramacao(r)}
+                        disabled={excluindo === r.id}
+                        className="px-3 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
+                        title="Excluir programação"
+                      >
+                        {excluindo === r.id ? "..." : "🗑"}
                       </button>
                       {expandedId === r.id && (
                         <div className="border-t border-[var(--border)] p-4 bg-gray-50 text-sm space-y-2">
