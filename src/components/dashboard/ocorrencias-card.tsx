@@ -17,7 +17,7 @@ function iniciais(nome: string | null) {
 
 export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrencia[] }) {
   return (
-    <div className="card p-5 h-[380px] flex flex-col">
+    <div className="card p-5 h-[260px] flex flex-col">
       <div className="flex items-center justify-between mb-1 shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base">⚠️</span>

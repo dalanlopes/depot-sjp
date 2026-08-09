@@ -52,17 +52,29 @@ export default function RepairsBarCard({
   const atingiuMeta = reparadosHoje >= metaDiaria;
 
   return (
-    <div className="card p-5 h-[380px] flex flex-col">
-      <div className="flex items-center justify-between mb-2 shrink-0">
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Reparados Oficina SJP</h3>
         <span className="text-lg">🔧</span>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex justify-center mb-3 mt-3">
+        <div className="rounded-xl bg-indigo-50 px-3 py-2.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
+          <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
+          <span>
+            <strong>{reparadosHoje}</strong> reparados hoje
+          </span>
+          <span className={atingiuMeta ? "text-green-700" : "text-amber-700"}>
+            <strong>{faltam}</strong> faltam para a meta
+          </span>
+        </div>
+      </div>
+
+      <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series7d} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
-            <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 12 }} interval={0} />
+            <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
             <YAxis
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 11 }}
               allowDecimals={false}
               width={28}
               domain={[0, (max: number) => Math.max(max, metaDiaria)]}
@@ -72,29 +84,16 @@ export default function RepairsBarCard({
               y={metaDiaria}
               stroke="var(--muted)"
               strokeDasharray="4 4"
-              label={{ value: `Meta ${metaDiaria}`, fontSize: 11, position: "insideTopRight" }}
+              label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }}
             />
             <Bar dataKey="quantidade" radius={[6, 6, 0, 0]} maxBarSize={36}>
-              <LabelList dataKey="quantidade" position="top" style={{ fontSize: 12, fontWeight: 700 }} />
+              <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fontWeight: 700 }} />
               {series7d.map((p) => (
                 <Cell key={p.data} fill={p.quantidade >= metaDiaria ? "var(--success)" : "var(--danger)"} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 shrink-0">
-        <div className="rounded-xl bg-gray-50 border border-[var(--border)] px-3 py-2 text-center">
-          <p className="text-xs text-[var(--muted)] mb-0.5">Reparados hoje</p>
-          <p className="text-xl font-bold">{reparadosHoje}</p>
-        </div>
-        <div className="rounded-xl bg-gray-50 border border-[var(--border)] px-3 py-2 text-center">
-          <p className="text-xs text-[var(--muted)] mb-0.5">Faltam para a meta</p>
-          <p className={`text-xl font-bold ${atingiuMeta ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
-            {faltam}
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -65,27 +65,27 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="space-y-5">
       <RepairsBarCard
         series7d={summary.reparosSeries7d}
         metaDiaria={summary.metaDiariaReparos}
       />
-      <OcorrenciasCard ocorrencias={summary.ocorrenciasRecentes} />
-      <EstoqueCard
-        alimentoOk={summary.estoque.alimentoOk}
-        avariadas={summary.estoque.avariadas}
-        cargaGeralOk={summary.estoque.cargaGeralOk}
-        porArmador={summary.estoque.porArmador}
-      />
-      <div className="md:col-span-3">
-        <ProgramacaoCard
-          series7d={summary.programacaoSeries7d}
-          metaDiaria={summary.metaDiariaColetas}
-          metaSemanal={summary.metaSemanalColetas}
-          coletadosSemana={summary.coletadosSemana}
-          faltamSemana={summary.faltamSemana}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <OcorrenciasCard ocorrencias={summary.ocorrenciasRecentes} />
+        <EstoqueCard
+          alimentoOk={summary.estoque.alimentoOk}
+          avariadas={summary.estoque.avariadas}
+          cargaGeralOk={summary.estoque.cargaGeralOk}
+          porArmador={summary.estoque.porArmador}
         />
       </div>
+      <ProgramacaoCard
+        series7d={summary.programacaoSeries7d}
+        metaDiaria={summary.metaDiariaColetas}
+        metaSemanal={summary.metaSemanalColetas}
+        coletadosSemana={summary.coletadosSemana}
+        faltamSemana={summary.faltamSemana}
+      />
     </div>
   );
 }

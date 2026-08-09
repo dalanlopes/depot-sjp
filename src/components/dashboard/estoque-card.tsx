@@ -17,7 +17,7 @@ export default function EstoqueCard({
   porArmador: ArmadorAlimento[];
 }) {
   return (
-    <div className="card p-5 h-[380px] flex flex-col">
+    <div className="card p-5 h-[260px] flex flex-col">
       <div className="flex items-center justify-between mb-1 shrink-0">
         <h3 className="text-sm font-semibold">Estoque</h3>
         <span className="text-lg">📦</span>
