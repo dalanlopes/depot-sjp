@@ -262,9 +262,14 @@ export default function OficinaClient({
         <h2 className="text-sm font-semibold mb-3">Últimos 7 dias</h2>
         <div style={{ height: 150 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
+            <BarChart data={series7d} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
               <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, (max: number) => Math.max(max, metaDiaria)]} />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                allowDecimals={false}
+                width={28}
+                domain={[0, (max: number) => Math.max(max, metaDiaria)]}
+              />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
               <ReferenceLine
                 y={metaDiaria}

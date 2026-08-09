@@ -52,16 +52,21 @@ export default function RepairsBarCard({
   const atingiuMeta = reparadosHoje >= metaDiaria;
 
   return (
-    <div className="card p-5">
+    <div className="card p-5 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold">Reparados Oficina SJP</h3>
         <span className="text-lg">🔧</span>
       </div>
-      <div style={{ height: 160 }}>
+      <div className="flex-1 min-h-[180px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
+          <BarChart data={series7d} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} domain={[0, (max: number) => Math.max(max, metaDiaria)]} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              allowDecimals={false}
+              width={28}
+              domain={[0, (max: number) => Math.max(max, metaDiaria)]}
+            />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
             <ReferenceLine
               y={metaDiaria}
@@ -79,7 +84,7 @@ export default function RepairsBarCard({
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 shrink-0">
         <div className="rounded-xl bg-gray-50 border border-[var(--border)] px-3 py-2.5 text-center">
           <p className="text-xs text-[var(--muted)] mb-0.5">Reparados hoje</p>
           <p className="text-xl font-bold">{reparadosHoje}</p>
