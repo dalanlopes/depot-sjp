@@ -68,6 +68,7 @@ export default function ColetasClient() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   const [rows, setRows] = useState<ColetaRow[]>([]);
+  const [excluindoColeta, setExcluindoColeta] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
   const [filtroInicio, setFiltroInicio] = useState(daysAgoStr(29));
   const [filtroFim, setFiltroFim] = useState(todayStr());
@@ -162,6 +163,19 @@ export default function ColetasClient() {
     const form = getForm(programacaoId);
     if (form.containers.length <= 1) return;
     updateForm(programacaoId, { containers: form.containers.filter((_, i) => i !== index) });
+  }
+
+  async function excluirColeta(r: ColetaRow) {
+    if (!confirm(`Excluir a coleta do container ${r.container_numero ?? "—"}?`)) return;
+    setExcluindoColeta(r.id);
+    const res = await fetch(`/api/coletas/${r.id}`, { method: "DELETE" });
+    setExcluindoColeta(null);
+    if (res.ok) {
+      refreshAll();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setPendMessage({ type: "error", text: data.error ?? "Erro ao excluir a coleta." });
+    }
   }
 
   async function confirmarGrupo(programacaoId: string, itens: PendenteRow[]) {
@@ -368,6 +382,7 @@ export default function ColetasClient() {
                 <th className="px-4 py-3 font-medium">Padrão</th>
                 <th className="px-4 py-3 font-medium">Código CM</th>
                 <th className="px-4 py-3 font-medium">Data da Saída</th>
+                <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -378,11 +393,20 @@ export default function ColetasClient() {
                   <td className="px-4 py-3">{r.padrao ?? "—"}</td>
                   <td className="px-4 py-3">{r.codigo_cm_veiculo}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatDateTimeBR(r.data)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
+                      onClick={() => excluirColeta(r)}
+                      disabled={excluindoColeta === r.id}
+                    >
+                      {excluindoColeta === r.id ? "..." : "Excluir"}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!loadingReport && rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-[var(--muted)]">
+                  <td colSpan={6} className="px-4 py-10 text-center text-[var(--muted)]">
                     Nenhuma saída registrada no período.
                   </td>
                 </tr>

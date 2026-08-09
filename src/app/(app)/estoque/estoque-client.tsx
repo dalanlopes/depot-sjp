@@ -35,6 +35,7 @@ export default function EstoqueClient() {
   const [loadingDetalhe, setLoadingDetalhe] = useState(false);
   const [status, setStatus] = useState("");
   const [padrao, setPadrao] = useState("");
+  const [buscaNumero, setBuscaNumero] = useState("");
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
@@ -64,6 +65,10 @@ export default function EstoqueClient() {
   useEffect(() => {
     if (selecionado) loadDetalhe(selecionado);
   }, [selecionado, loadDetalhe]);
+
+  const detalhesFiltrados = buscaNumero.trim()
+    ? detalhes.filter((c) => c.numero.toUpperCase().includes(buscaNumero.trim().toUpperCase()))
+    : detalhes;
 
   return (
     <div>
@@ -125,6 +130,15 @@ export default function EstoqueClient() {
 
             <div className="flex flex-wrap gap-3 items-end mb-4">
               <div>
+                <label className="text-xs font-medium text-[var(--muted)] block mb-1">Buscar número</label>
+                <input
+                  className="input"
+                  placeholder="Ex: CAAU7936686"
+                  value={buscaNumero}
+                  onChange={(e) => setBuscaNumero(e.target.value)}
+                />
+              </div>
+              <div>
                 <label className="text-xs font-medium text-[var(--muted)] block mb-1">Status</label>
                 <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
                   <option value="">Todos</option>
@@ -143,7 +157,7 @@ export default function EstoqueClient() {
                 </select>
               </div>
               <span className="text-xs text-[var(--muted)] ml-auto">
-                {loadingDetalhe ? "Carregando..." : `${detalhes.length} containers`}
+                {loadingDetalhe ? "Carregando..." : `${detalhesFiltrados.length} containers`}
               </span>
             </div>
 
@@ -161,7 +175,7 @@ export default function EstoqueClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detalhes.map((c) => {
+                  {detalhesFiltrados.map((c) => {
                     const dias = diasEmEstoque(c.entrada);
                     const valor = c.valor_reparo ?? c.valor_estimado;
                     return (
@@ -182,7 +196,7 @@ export default function EstoqueClient() {
                       </tr>
                     );
                   })}
-                  {!loadingDetalhe && detalhes.length === 0 && (
+                  {!loadingDetalhe && detalhesFiltrados.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-3 py-8 text-center text-[var(--muted)]">
                         Nenhum container encontrado.

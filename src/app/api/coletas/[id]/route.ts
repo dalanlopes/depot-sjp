@@ -86,3 +86,46 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json({ ok: true });
 }
+
+// Exclui uma coleta já concluída (ex.: registrada por engano). Se ela veio de
+// uma Programação, a vaga volta a ficar pendente para o analista refazer;
+// se for avulsa, o registro é removido de vez.
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!canRegisterCollection(session.role)) {
+    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const coleta = await db
+    .selectFrom("coletas")
+    .select(["id", "programacao_id"])
+    .where("id", "=", id)
+    .executeTakeFirst();
+
+  if (!coleta) {
+    return NextResponse.json({ error: "Coleta não encontrada." }, { status: 404 });
+  }
+
+  if (coleta.programacao_id) {
+    await db
+      .updateTable("coletas")
+      .set({
+        container_numero: null,
+        codigo_cm_veiculo: null,
+        status: "PENDENTE",
+        data: null,
+      })
+      .where("id", "=", id)
+      .execute();
+  } else {
+    await db.deleteFrom("coletas").where("id", "=", id).execute();
+  }
+
+  return NextResponse.json({ ok: true });
+}
