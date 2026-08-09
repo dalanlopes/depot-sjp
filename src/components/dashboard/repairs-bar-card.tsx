@@ -52,13 +52,13 @@ export default function RepairsBarCard({
   const atingiuMeta = reparadosHoje >= metaDiaria;
 
   return (
-    <div className="card p-5">
+    <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Reparados Oficina SJP</h3>
         <span className="text-lg">🔧</span>
       </div>
-      <div className="flex justify-center mb-3 mt-3">
-        <div className="rounded-xl bg-indigo-50 px-3 py-2.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
+      <div className="flex justify-center mb-2 mt-1.5">
+        <div className="rounded-xl bg-indigo-50 px-3 py-1.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-0.5 text-xs">
           <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
           <span>
             <strong>{reparadosHoje}</strong> reparados hoje
@@ -69,9 +69,9 @@ export default function RepairsBarCard({
         </div>
       </div>
 
-      <div className="h-48">
+      <div className="h-36">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={series7d} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
+          <BarChart data={series7d} margin={{ top: 14, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} interval={0} />
             <YAxis
               tick={{ fontSize: 11 }}

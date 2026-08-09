@@ -65,12 +65,12 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <RepairsBarCard
         series7d={summary.reparosSeries7d}
         metaDiaria={summary.metaDiariaReparos}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <OcorrenciasCard ocorrencias={summary.ocorrenciasRecentes} />
         <EstoqueCard
           alimentoOk={summary.estoque.alimentoOk}

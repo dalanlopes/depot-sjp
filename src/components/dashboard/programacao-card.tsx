@@ -61,13 +61,13 @@ export default function ProgramacaoCard({
   const totalPendente = series7d.reduce((a, p) => a + p.pendente, 0);
 
   return (
-    <div className="card p-5">
+    <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Programação</h3>
         <span className="text-lg">🗓️</span>
       </div>
-      <div className="flex justify-center mb-3 mt-3">
-        <div className="rounded-xl bg-indigo-50 px-3 py-2.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-1 text-xs">
+      <div className="flex justify-center mb-2 mt-1.5">
+        <div className="rounded-xl bg-indigo-50 px-3 py-1.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-0.5 text-xs">
           <span className="font-semibold text-indigo-700">Meta diária: {metaDiaria} unidades</span>
           <span>
             <strong>{coletadosSemana}</strong> coletados esta semana (meta {metaSemanal})
@@ -78,15 +78,15 @@ export default function ProgramacaoCard({
         </div>
       </div>
 
-      <div className="flex justify-center gap-4 mb-3 text-xs">
+      <div className="flex justify-center gap-4 mb-1.5 text-xs">
         <span><strong>{totalSolicitado}</strong> solicitados</span>
         <span className="text-green-700"><strong>{totalConcluido}</strong> concluídos</span>
         <span className="text-amber-700"><strong>{totalPendente}</strong> a realizar</span>
       </div>
 
-      <div className="h-56">
+      <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={series7d} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <BarChart data={series7d} margin={{ top: 2, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} />
             <YAxis
               tick={{ fontSize: 11 }}

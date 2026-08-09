@@ -17,7 +17,7 @@ function iniciais(nome: string | null) {
 
 export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrencia[] }) {
   return (
-    <div className="card p-5">
+    <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base">⚠️</span>
@@ -26,19 +26,19 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
         <span className="badge bg-amber-100 text-amber-700">{ocorrencias.length} no período</span>
       </div>
 
-      <div className="max-h-72 overflow-y-auto overflow-x-hidden pr-1 mt-3">
+      <div className="mt-2">
         {ocorrencias.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
             <span className="text-2xl">✅</span>
             <p className="text-sm text-[var(--muted)]">Nenhuma ocorrência registrada no período.</p>
           </div>
         ) : (
-          <ol className="relative border-l-2 border-amber-100 ml-2 space-y-4">
+          <ol className="relative border-l-2 border-amber-100 ml-2 space-y-2">
             {ocorrencias.map((o) => (
               <li key={o.id} className="ml-4 relative">
                 <span className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-amber-400 ring-4 ring-white" />
-                <div className="rounded-xl px-3.5 py-3 bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-sm transition-shadow">
-                  <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="rounded-lg px-3 py-1.5 bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
                     <span className="text-xs font-semibold text-amber-800">{formatDateBR(o.data)}</span>
                     {o.criado_por && (
                       <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
@@ -49,7 +49,7 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-amber-950 leading-snug">{o.motivo}</p>
+                  <p className="text-xs text-amber-950 leading-snug">{o.motivo}</p>
                 </div>
               </li>
             ))}
