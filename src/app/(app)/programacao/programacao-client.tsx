@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { ARMADORES, SOLICITANTES, SOLICITANTE_LABELS, PADRAO_LABELS, type Armador, type SolicitanteTipo } from "@/lib/types";
 import { formatDateBR, formatDateTimeBR } from "@/lib/tz";
 
@@ -29,7 +29,7 @@ export default function ProgramacaoClient() {
   const [solicitante, setSolicitante] = useState("");
   const [destino, setDestino] = useState<SolicitanteTipo>("MATRIZ");
   const [armador, setArmador] = useState<Armador>(ARMADORES[0]);
-  const [quantidade, setQuantidade] = useState(1);
+  const [quantidade, setQuantidade] = useState("1");
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
@@ -55,6 +55,16 @@ export default function ProgramacaoClient() {
     loadRows();
   }, [loadRows]);
 
+  const porData = useMemo(() => {
+    const map = new Map<string, ProgramacaoRow[]>();
+    for (const r of rows) {
+      const arr = map.get(r.data_retirada);
+      if (arr) arr.push(r);
+      else map.set(r.data_retirada, [r]);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [rows]);
+
   async function toggleCard(id: string) {
     if (expandedId === id) {
       setExpandedId(null);
@@ -74,20 +84,21 @@ export default function ProgramacaoClient() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const qtd = Math.max(1, parseInt(quantidade, 10) || 0);
     setSaving(true);
     setMessage(null);
     try {
       const res = await fetch("/api/programacao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataRetirada, solicitante, destino, armador, quantidade }),
+        body: JSON.stringify({ dataRetirada, solicitante, destino, armador, quantidade: qtd }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setMessage({ type: "ok", text: "Programação registrada com sucesso." });
         setSolicitante("");
         setDestino("MATRIZ");
-        setQuantidade(1);
+        setQuantidade("1");
         loadRows();
       } else {
         setMessage({ type: "error", text: data.error ?? "Erro ao registrar. Verifique os campos." });
@@ -151,7 +162,10 @@ export default function ProgramacaoClient() {
             min={1}
             className="input max-w-[140px]"
             value={quantidade}
-            onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value)))}
+            onChange={(e) => setQuantidade(e.target.value)}
+            onBlur={() => {
+              if (!quantidade || Number(quantidade) < 1) setQuantidade("1");
+            }}
             required
           />
           <p className="text-[11px] text-[var(--muted)] mt-1">
@@ -172,58 +186,67 @@ export default function ProgramacaoClient() {
       <div>
         <h2 className="text-sm font-semibold mb-3">Programações recentes</h2>
         {loadingRows && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
-        {!loadingRows && rows.length === 0 && (
+        {!loadingRows && porData.length === 0 && (
           <div className="card p-10 text-center text-sm text-[var(--muted)]">
             Nenhuma programação nos últimos 14 dias.
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rows.map((r) => {
-            const completo = r.realizada >= r.quantidade;
-            return (
-              <div key={r.id} className="card overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleCard(r.id)}
-                  className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold">{formatDateBR(`${r.data_retirada}T12:00:00-03:00`)}</span>
-                    <span className={`badge ${completo ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                      {r.realizada}/{r.quantidade}
-                    </span>
-                  </div>
-                  <p className="text-sm text-[var(--muted)]">{r.solicitante || "—"}</p>
-                  <p className="text-xs text-[var(--muted)] mt-1">
-                    {SOLICITANTE_LABELS[r.destino]} · {r.armador}
-                  </p>
-                </button>
-                {expandedId === r.id && (
-                  <div className="border-t border-[var(--border)] p-4 bg-gray-50 text-sm space-y-2">
-                    {loadingDetalhe === r.id && <p className="text-[var(--muted)]">Carregando...</p>}
-                    {loadingDetalhe !== r.id && (detalhes[r.id]?.length ?? 0) === 0 && (
-                      <p className="text-[var(--muted)]">Nenhuma vaga registrada.</p>
-                    )}
-                    {loadingDetalhe !== r.id &&
-                      detalhes[r.id]?.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between border-b border-[var(--border)] last:border-0 pb-2 last:pb-0">
-                          {c.status === "CONCLUIDO" ? (
-                            <>
-                              <span className="font-medium">{c.container_numero}</span>
-                              <span className="text-[var(--muted)]">CM {c.codigo_cm_veiculo}</span>
-                              <span className="text-[var(--muted)]">{c.padrao ? PADRAO_LABELS[c.padrao as keyof typeof PADRAO_LABELS] : "—"}</span>
-                              <span className="text-[var(--muted)]">{c.data ? formatDateTimeBR(c.data) : "—"}</span>
-                            </>
-                          ) : (
-                            <span className="text-amber-600">Pendente de container e CM</span>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                )}
+        <div className="space-y-4">
+          {porData.map(([data, itens]) => (
+            <div key={data} className="card overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border)] bg-gray-50">
+                <span className="text-sm font-semibold">{formatDateBR(`${data}T12:00:00-03:00`)}</span>
               </div>
-            );
-          })}
+              <div>
+                {itens.map((r) => {
+                  const completo = r.realizada >= r.quantidade;
+                  const faltam = Math.max(r.quantidade - r.realizada, 0);
+                  return (
+                    <div key={r.id} className="border-b border-[var(--border)] last:border-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleCard(r.id)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{r.solicitante || "—"}</p>
+                          <p className="text-xs text-[var(--muted)] mt-0.5">
+                            {SOLICITANTE_LABELS[r.destino]} · {r.armador}
+                          </p>
+                        </div>
+                        <span className={`badge shrink-0 ${completo ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                          {r.realizada} realizada{r.realizada === 1 ? "" : "s"} · {faltam} falta{faltam === 1 ? "" : "m"}
+                        </span>
+                      </button>
+                      {expandedId === r.id && (
+                        <div className="border-t border-[var(--border)] p-4 bg-gray-50 text-sm space-y-2">
+                          {loadingDetalhe === r.id && <p className="text-[var(--muted)]">Carregando...</p>}
+                          {loadingDetalhe !== r.id && (detalhes[r.id]?.length ?? 0) === 0 && (
+                            <p className="text-[var(--muted)]">Nenhuma vaga registrada.</p>
+                          )}
+                          {loadingDetalhe !== r.id &&
+                            detalhes[r.id]?.map((c) => (
+                              <div key={c.id} className="flex items-center justify-between border-b border-[var(--border)] last:border-0 pb-2 last:pb-0">
+                                {c.status === "CONCLUIDO" ? (
+                                  <>
+                                    <span className="font-medium">{c.container_numero}</span>
+                                    <span className="text-[var(--muted)]">CM {c.codigo_cm_veiculo}</span>
+                                    <span className="text-[var(--muted)]">{c.padrao ? PADRAO_LABELS[c.padrao as keyof typeof PADRAO_LABELS] : "—"}</span>
+                                    <span className="text-[var(--muted)]">{c.data ? formatDateTimeBR(c.data) : "—"}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-amber-600">Pendente de container e CM</span>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
