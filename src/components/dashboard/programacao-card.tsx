@@ -84,7 +84,7 @@ export default function ProgramacaoCard({
         <span className="text-amber-700"><strong>{totalPendente}</strong> a realizar</span>
       </div>
 
-      <div className="h-64">
+      <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series7d} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 11 }} />
