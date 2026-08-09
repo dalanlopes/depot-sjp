@@ -51,7 +51,8 @@ CREATE TABLE reparos (
   valor_faturado   NUMERIC(10,2),
   faturado_por     TEXT REFERENCES users(id),
   faturado_em      TIMESTAMPTZ,
-  dm               dm_opcao -- DM1..DM4: time/posto que fez o reparo
+  dm               dm_opcao, -- DM1..DM4: time/posto que fez o reparo
+  por_conta_depot  BOOLEAN NOT NULL DEFAULT false -- reparo feito mas nao cobrado do armador
 );
 
 CREATE INDEX idx_reparos_data ON reparos(data);

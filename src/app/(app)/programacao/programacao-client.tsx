@@ -144,7 +144,7 @@ export default function ProgramacaoClient() {
               className="input uppercase"
               value={solicitante}
               onChange={(e) => setSolicitante(e.target.value.toUpperCase())}
-              placeholder="Nome de quem solicitou"
+              placeholder="Nome"
               required
             />
           </div>

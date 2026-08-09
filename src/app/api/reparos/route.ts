@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       "r.data",
       "r.container_numero",
       "r.dm",
+      "r.por_conta_depot",
       "c.armador",
       "c.padrao",
       "r.valor_faturado",
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
   }));
 
   const valorEstimado = showFinance
-    ? rows.reduce((acc, r) => acc + Number(r.valor_faturado ?? 0), 0)
+    ? rows.reduce((acc, r) => (r.por_conta_depot ? acc : acc + Number(r.valor_faturado ?? 0)), 0)
     : undefined;
 
   return NextResponse.json({
@@ -64,6 +65,7 @@ const schema = z.object({
       z.object({
         numero: z.string().min(4).max(20),
         dm: z.enum(DM_OPCOES as [string, ...string[]]).optional(),
+        porContaDepot: z.boolean().optional(),
       })
     )
     .min(1),
@@ -84,7 +86,11 @@ export async function POST(req: NextRequest) {
 
   const seen = new Set<string>();
   const itens = parsed.data.itens
-    .map((i) => ({ numero: i.numero.trim().toUpperCase(), dm: i.dm as (typeof DM_OPCOES)[number] | undefined }))
+    .map((i) => ({
+      numero: i.numero.trim().toUpperCase(),
+      dm: i.dm as (typeof DM_OPCOES)[number] | undefined,
+      porContaDepot: i.porContaDepot ?? false,
+    }))
     .filter((i) => (seen.has(i.numero) ? false : (seen.add(i.numero), true)));
 
   const created: string[] = [];
@@ -105,7 +111,11 @@ export async function POST(req: NextRequest) {
     await db.transaction().execute(async (trx) => {
       await trx
         .insertInto("reparos")
-        .values({ container_numero: item.numero, dm: item.dm ?? null })
+        .values({
+          container_numero: item.numero,
+          dm: item.dm ?? null,
+          por_conta_depot: item.porContaDepot,
+        })
         .execute();
 
       await trx

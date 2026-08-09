@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   Tooltip,
   ReferenceLine,
@@ -20,6 +21,7 @@ interface ReparoRow {
   armador: string;
   padrao: string;
   dm: Dm | null;
+  por_conta_depot: boolean;
   valor_faturado?: string | null;
   faturado_em?: string | null;
 }
@@ -45,6 +47,7 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
     <div className="card p-2.5 text-xs shadow-lg">
       <p className="font-semibold mb-0.5">{formatDia(p.data)}</p>
       <p>{p.quantidade} reparo(s)</p>
+      <p className="text-[var(--muted)]">Clique para ver o DM do dia</p>
     </div>
   );
 }
@@ -63,16 +66,20 @@ export default function OficinaClient({
 
   const [numero, setNumero] = useState("");
   const [dm, setDm] = useState<Dm>("DM1");
+  const [porContaDepot, setPorContaDepot] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [pending, setPending] = useState<{ numero: string; dm: Dm }[]>([]);
+  const [pending, setPending] = useState<{ numero: string; dm: Dm; porContaDepot: boolean }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
 
   const [series7d, setSeries7d] = useState<PontoDia[]>([]);
-  const [dmMes, setDmMes] = useState<Record<string, number>>({});
   const [metaDiaria, setMetaDiaria] = useState(35);
+
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
+  const [diaSelecionadoDm, setDiaSelecionadoDm] = useState<Record<string, number> | null>(null);
+  const [diaSelecionadoLoading, setDiaSelecionadoLoading] = useState(false);
 
   const [historyDate, setHistoryDate] = useState(todayStr());
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -93,7 +100,6 @@ export default function OficinaClient({
     if (res.ok) {
       const data = await res.json();
       setSeries7d(data.series7d ?? []);
-      setDmMes(data.dmMes ?? {});
       setMetaDiaria(data.metaDiaria ?? 35);
     }
   }, []);
@@ -107,6 +113,21 @@ export default function OficinaClient({
     }, 15000);
     return () => clearInterval(interval);
   }, [load, loadSummary]);
+
+  async function handleBarClick(point: PontoDia) {
+    setDiaSelecionado(point.data);
+    setDiaSelecionadoLoading(true);
+    const res = await fetch(`/api/reparos?data=${point.data}`);
+    if (res.ok) {
+      const data = await res.json();
+      const counts: Record<string, number> = Object.fromEntries(DM_OPCOES.map((o) => [o, 0]));
+      for (const r of (data.reparos ?? []) as ReparoRow[]) {
+        if (r.dm && counts[r.dm] !== undefined) counts[r.dm] += 1;
+      }
+      setDiaSelecionadoDm(counts);
+    }
+    setDiaSelecionadoLoading(false);
+  }
 
   async function addPending() {
     const n = numero.trim().toUpperCase();
@@ -128,8 +149,9 @@ export default function OficinaClient({
         setAddError("Container não encontrado no estoque.");
         return;
       }
-      setPending((prev) => [...prev, { numero: n, dm }]);
+      setPending((prev) => [...prev, { numero: n, dm, porContaDepot }]);
       setNumero("");
+      setPorContaDepot(false);
     } finally {
       setChecking(false);
     }
@@ -219,31 +241,60 @@ export default function OficinaClient({
               <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
               <ReferenceLine
                 y={metaDiaria}
-                stroke="var(--danger)"
+                stroke="var(--muted)"
                 strokeDasharray="4 4"
                 label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }}
               />
-              <Bar dataKey="quantidade" fill="var(--success)" radius={[6, 6, 0, 0]} maxBarSize={28}>
-                <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fill: "var(--success)", fontWeight: 600 }} />
+              <Bar
+                dataKey="quantidade"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={28}
+                cursor="pointer"
+                onClick={(point) => handleBarClick(point as unknown as PontoDia)}
+              >
+                <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fontWeight: 600 }} />
+                {series7d.map((p) => (
+                  <Cell key={p.data} fill={p.quantidade >= metaDiaria ? "var(--success)" : "var(--danger)"} />
+                ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          {DM_OPCOES.map((opt) => (
-            <div key={opt} className="rounded-xl bg-indigo-50 px-3 py-2.5 text-center">
-              <p className="text-[11px] font-semibold text-indigo-700">{opt}</p>
-              <p className="text-lg font-bold text-indigo-900">{dmMes[opt] ?? 0}</p>
+
+        {diaSelecionado && (
+          <div className="mt-4 border-t border-[var(--border)] pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-[var(--muted)]">
+                DM em {formatDateBR(`${diaSelecionado}T12:00:00-03:00`)}
+              </p>
+              <button
+                type="button"
+                onClick={() => { setDiaSelecionado(null); setDiaSelecionadoDm(null); }}
+                className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Fechar
+              </button>
             </div>
-          ))}
-        </div>
-        <p className="text-[11px] text-[var(--muted)] mt-2">Totais do mês por DM · reinicia todo início de mês.</p>
+            {diaSelecionadoLoading ? (
+              <p className="text-sm text-[var(--muted)]">Carregando...</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {DM_OPCOES.map((opt) => (
+                  <div key={opt} className="rounded-xl bg-indigo-50 px-3 py-2.5 text-center">
+                    <p className="text-[11px] font-semibold text-indigo-700">{opt}</p>
+                    <p className="text-lg font-bold text-indigo-900">{diaSelecionadoDm?.[opt] ?? 0}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {canRegister && (
         <div className="card p-4">
           <h2 className="text-sm font-semibold mb-3">Registrar containers reparados</h2>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <input
               className="input max-w-[220px]"
               placeholder="Número do container"
@@ -256,6 +307,14 @@ export default function OficinaClient({
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+            <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <input
+                type="checkbox"
+                checked={porContaDepot}
+                onChange={(e) => setPorContaDepot(e.target.checked)}
+              />
+              Por conta do Depot
+            </label>
             <button className="btn btn-secondary disabled:opacity-50" onClick={addPending} type="button" disabled={checking}>
               {checking ? "Verificando..." : "Adicionar"}
             </button>
@@ -267,12 +326,16 @@ export default function OficinaClient({
               {submitting ? "Salvando..." : `Salvar (${pending.length})`}
             </button>
           </div>
+          <p className="text-[11px] text-[var(--muted)] mt-1.5">
+            "Por conta do Depot" marca o reparo como feito mas não cobrado do armador.
+          </p>
           {addError && <p className="text-sm text-[var(--danger)] mt-2">{addError}</p>}
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {pending.map((p) => (
                 <span key={p.numero} className="badge bg-indigo-50 text-indigo-700">
                   {p.numero} · {p.dm}
+                  {p.porContaDepot && <span className="ml-1 text-amber-700">· Depot</span>}
                   <button
                     onClick={() => setPending(pending.filter((x) => x.numero !== p.numero))}
                     className="ml-1"
@@ -338,29 +401,38 @@ export default function OficinaClient({
                 <tbody>
                   {historyRows.map((r) => (
                     <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
-                      <td className="px-3 py-2 font-medium">{r.container_numero}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {r.container_numero}
+                        {r.por_conta_depot && (
+                          <span className="ml-1.5 badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-[var(--muted)]">{r.dm ?? "—"}</td>
                       <td className="px-3 py-2">{r.armador}</td>
                       <td className="px-3 py-2">{r.padrao}</td>
                       <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
                       {canFinance && (
                         <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              className="input max-w-[120px]"
-                              placeholder="0,00"
-                              defaultValue={r.valor_faturado ?? ""}
-                              onChange={(e) =>
-                                setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
-                              }
-                            />
-                            <button
-                              className="btn btn-secondary text-xs px-2 py-1"
-                              onClick={() => saveValor(r.id)}
-                            >
-                              Salvar
-                            </button>
-                          </div>
+                          {r.por_conta_depot ? (
+                            <span className="text-xs text-[var(--muted)]">Não cobrado (Depot)</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                className="input max-w-[120px]"
+                                placeholder="0,00"
+                                defaultValue={r.valor_faturado ?? ""}
+                                onChange={(e) =>
+                                  setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                }
+                              />
+                              <button
+                                className="btn btn-secondary text-xs px-2 py-1"
+                                onClick={() => saveValor(r.id)}
+                              >
+                                Salvar
+                              </button>
+                            </div>
+                          )}
                         </td>
                       )}
                     </tr>

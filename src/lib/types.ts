@@ -86,6 +86,7 @@ export interface ReparosTable {
   faturado_por: string | null;
   faturado_em: Timestamp | null;
   dm: Dm | null;
+  por_conta_depot: Generated<boolean>;
 }
 
 export interface OcorrenciasTable {

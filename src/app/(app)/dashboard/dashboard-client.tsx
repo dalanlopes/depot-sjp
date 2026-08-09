@@ -65,18 +65,19 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       <RepairsBarCard
         series7d={summary.reparosSeries7d}
         metaDiaria={summary.metaDiariaReparos}
       />
+      <OcorrenciasCard ocorrencias={summary.ocorrenciasRecentes} />
       <EstoqueCard
         alimentoOk={summary.estoque.alimentoOk}
         avariadas={summary.estoque.avariadas}
         cargaGeralOk={summary.estoque.cargaGeralOk}
         porArmador={summary.estoque.porArmador}
       />
-      <div className="md:col-span-2">
+      <div className="md:col-span-3">
         <ProgramacaoCard
           series7d={summary.programacaoSeries7d}
           metaDiaria={summary.metaDiariaColetas}
@@ -84,9 +85,6 @@ export default function DashboardClient() {
           coletadosSemana={summary.coletadosSemana}
           faltamSemana={summary.faltamSemana}
         />
-      </div>
-      <div className="md:col-span-2">
-        <OcorrenciasCard ocorrencias={summary.ocorrenciasRecentes} />
       </div>
     </div>
   );

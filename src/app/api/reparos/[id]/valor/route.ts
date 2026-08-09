@@ -25,6 +25,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Valor inválido." }, { status: 400 });
   }
 
+  const reparo = await db
+    .selectFrom("reparos")
+    .select(["id", "por_conta_depot"])
+    .where("id", "=", id)
+    .executeTakeFirst();
+  if (!reparo) {
+    return NextResponse.json({ error: "Reparo não encontrado." }, { status: 404 });
+  }
+  if (reparo.por_conta_depot) {
+    return NextResponse.json(
+      { error: "Esse reparo é por conta do Depot e não é cobrado do armador." },
+      { status: 400 }
+    );
+  }
+
   await db
     .updateTable("reparos")
     .set({
