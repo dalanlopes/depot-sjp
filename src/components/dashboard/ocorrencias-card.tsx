@@ -26,7 +26,7 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
         <span className="badge bg-amber-100 text-amber-700">{ocorrencias.length} no período</span>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-2 max-h-[220px] overflow-y-auto overflow-x-hidden pr-1">
         {ocorrencias.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
             <span className="text-2xl">✅</span>
