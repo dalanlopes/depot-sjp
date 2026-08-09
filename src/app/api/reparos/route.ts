@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
           container_numero: item.numero,
           dm: item.dm ?? null,
           por_conta_depot: item.porContaDepot,
+          status_anterior: container.status,
         })
         .execute();
 

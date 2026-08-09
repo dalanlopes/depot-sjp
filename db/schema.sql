@@ -55,7 +55,8 @@ CREATE TABLE reparos (
   faturado_por     TEXT REFERENCES users(id),
   faturado_em      TIMESTAMPTZ,
   dm               dm_opcao, -- DM1..DM4: time/posto que fez o reparo
-  por_conta_depot  BOOLEAN NOT NULL DEFAULT false -- reparo feito mas nao cobrado do armador
+  por_conta_depot  BOOLEAN NOT NULL DEFAULT false, -- reparo feito mas nao cobrado do armador
+  status_anterior  status_container -- status do container antes do reparo; usado para restaurar ao excluir
 );
 
 CREATE INDEX idx_reparos_data ON reparos(data);

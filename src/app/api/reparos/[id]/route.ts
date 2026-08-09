@@ -40,7 +40,9 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-// Exclui um reparo registrado por engano.
+// Exclui um reparo registrado por engano. Se for o reparo mais recente do
+// container, restaura o status anterior (evita que o container continue
+// marcado como "OK"/disponível no estoque depois que o reparo é apagado).
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -52,7 +54,37 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  await db.deleteFrom("reparos").where("id", "=", id).execute();
+
+  const reparo = await db
+    .selectFrom("reparos")
+    .select(["id", "container_numero", "data", "status_anterior"])
+    .where("id", "=", id)
+    .executeTakeFirst();
+
+  if (!reparo) {
+    return NextResponse.json({ error: "Reparo não encontrado." }, { status: 404 });
+  }
+
+  await db.transaction().execute(async (trx) => {
+    const maisRecente = await trx
+      .selectFrom("reparos")
+      .select(["id"])
+      .where("container_numero", "=", reparo.container_numero)
+      .orderBy("data", "desc")
+      .orderBy("id", "desc")
+      .limit(1)
+      .executeTakeFirst();
+
+    await trx.deleteFrom("reparos").where("id", "=", id).execute();
+
+    if (maisRecente?.id === reparo.id && reparo.status_anterior) {
+      await trx
+        .updateTable("containers")
+        .set({ status: reparo.status_anterior, atualizado_em: new Date().toISOString() })
+        .where("numero", "=", reparo.container_numero)
+        .execute();
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }
