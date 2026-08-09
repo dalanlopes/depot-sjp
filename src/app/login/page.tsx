@@ -10,13 +10,14 @@ export default async function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-[var(--primary)] flex items-center justify-center text-white font-bold text-lg mb-3">
-            SJP
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-vale-do-tibagi.png"
+            alt="Vale do Tibagi"
+            className="mx-auto h-14 w-auto mb-3"
+          />
           <h1 className="text-xl font-semibold">Depot SJP</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            Gestão de Estoque e Reparos de Containers
-          </p>
+          <p className="text-sm text-[var(--muted)] mt-1">Versão 1.0</p>
         </div>
         <div className="card p-6">
           <LoginForm />
