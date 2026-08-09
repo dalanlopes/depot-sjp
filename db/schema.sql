@@ -8,6 +8,7 @@ CREATE TYPE status_container AS ENUM ('WS', 'AR', 'AE', 'RE', 'OK');
 CREATE TYPE solicitante_tipo AS ENUM ('MATRIZ', 'SJP', 'PG');
 CREATE TYPE tipo_carga_enum AS ENUM ('CHEIO', 'VAZIO');
 CREATE TYPE coleta_status AS ENUM ('PENDENTE', 'CONCLUIDO');
+CREATE TYPE dm_opcao AS ENUM ('DM1', 'DM2', 'DM3', 'DM4');
 
 CREATE TABLE users (
   id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -49,11 +50,13 @@ CREATE TABLE reparos (
   container_numero TEXT NOT NULL REFERENCES containers(numero) ON DELETE CASCADE,
   valor_faturado   NUMERIC(10,2),
   faturado_por     TEXT REFERENCES users(id),
-  faturado_em      TIMESTAMPTZ
+  faturado_em      TIMESTAMPTZ,
+  dm               dm_opcao -- DM1..DM4: time/posto que fez o reparo
 );
 
 CREATE INDEX idx_reparos_data ON reparos(data);
 CREATE INDEX idx_reparos_container ON reparos(container_numero);
+CREATE INDEX idx_reparos_dm ON reparos(dm);
 
 CREATE TABLE ocorrencias (
   id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

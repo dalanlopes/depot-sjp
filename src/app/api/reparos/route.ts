@@ -4,18 +4,20 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab, canRegisterRepair, canViewFinance } from "@/lib/roles";
 import { todayBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
-import { META_DIARIA_REPAROS } from "@/lib/types";
+import { META_DIARIA_REPAROS, DM_OPCOES } from "@/lib/types";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   if (!canAccessTab(session, "oficina")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
-  const hoje = todayBR();
-  const inicio = startOfDayBR(hoje);
-  const fim = endOfDayBR(hoje);
+  const { searchParams } = req.nextUrl;
+  const dataParam = searchParams.get("data");
+  const dia = dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam) ? dataParam : todayBR();
+  const inicio = startOfDayBR(dia);
+  const fim = endOfDayBR(dia);
 
   const rows = await db
     .selectFrom("reparos as r")
@@ -24,6 +26,7 @@ export async function GET() {
       "r.id",
       "r.data",
       "r.container_numero",
+      "r.dm",
       "c.armador",
       "c.padrao",
       "r.valor_faturado",
@@ -45,6 +48,7 @@ export async function GET() {
     : undefined;
 
   return NextResponse.json({
+    data: dia,
     reparos,
     meta: META_DIARIA_REPAROS,
     total: rows.length,
@@ -55,7 +59,14 @@ export async function GET() {
 }
 
 const schema = z.object({
-  numeros: z.array(z.string().min(4).max(20)).min(1),
+  itens: z
+    .array(
+      z.object({
+        numero: z.string().min(4).max(20),
+        dm: z.enum(DM_OPCOES as [string, ...string[]]).optional(),
+      })
+    )
+    .min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -71,36 +82,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Informe ao menos um número de container." }, { status: 400 });
   }
 
-  const numeros = [...new Set(parsed.data.numeros.map((n) => n.trim().toUpperCase()))];
+  const seen = new Set<string>();
+  const itens = parsed.data.itens
+    .map((i) => ({ numero: i.numero.trim().toUpperCase(), dm: i.dm as (typeof DM_OPCOES)[number] | undefined }))
+    .filter((i) => (seen.has(i.numero) ? false : (seen.add(i.numero), true)));
+
   const created: string[] = [];
   const failed: { numero: string; motivo: string }[] = [];
 
-  for (const numero of numeros) {
+  for (const item of itens) {
     const container = await db
       .selectFrom("containers")
       .selectAll()
-      .where("numero", "=", numero)
+      .where("numero", "=", item.numero)
       .executeTakeFirst();
 
     if (!container) {
-      failed.push({ numero, motivo: "Container não cadastrado no estoque." });
+      failed.push({ numero: item.numero, motivo: "Container não cadastrado no estoque." });
       continue;
     }
 
     await db.transaction().execute(async (trx) => {
       await trx
         .insertInto("reparos")
-        .values({ container_numero: numero })
+        .values({ container_numero: item.numero, dm: item.dm ?? null })
         .execute();
 
       await trx
         .updateTable("containers")
         .set({ status: "OK", atualizado_em: new Date().toISOString() })
-        .where("numero", "=", numero)
+        .where("numero", "=", item.numero)
         .execute();
     });
 
-    created.push(numero);
+    created.push(item.numero);
   }
 
   return NextResponse.json({ created, failed });

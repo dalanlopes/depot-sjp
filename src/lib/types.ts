@@ -12,6 +12,8 @@ export type StatusContainer = "WS" | "AR" | "AE" | "RE" | "OK";
 export type SolicitanteTipo = "MATRIZ" | "SJP" | "PG";
 export type TipoCarga = "CHEIO" | "VAZIO";
 export type ColetaStatus = "PENDENTE" | "CONCLUIDO";
+export type Dm = "DM1" | "DM2" | "DM3" | "DM4";
+export const DM_OPCOES: Dm[] = ["DM1", "DM2", "DM3", "DM4"];
 
 export const ARMADORES: Armador[] = ["MAERSK", "MSC", "HAPAG", "ZIM", "LOGIN"];
 export const PADROES: Padrao[] = ["AL", "CG", "OU"];
@@ -83,6 +85,7 @@ export interface ReparosTable {
   valor_faturado: string | null;
   faturado_por: string | null;
   faturado_em: Timestamp | null;
+  dm: Dm | null;
 }
 
 export interface OcorrenciasTable {

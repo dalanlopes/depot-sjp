@@ -59,6 +59,11 @@ export function diasEmEstoque(entrada: string | Date | null): number | null {
   return Math.round(diffMs / 86400000);
 }
 
+/** First day (YYYY-MM-DD) of the BR calendar month containing ymd. */
+export function startOfMonthBR(ymd: string): string {
+  return `${ymd.slice(0, 7)}-01`;
+}
+
 /** Monday (YYYY-MM-DD) of the BR calendar week containing ymd. */
 export function mondayOfWeekBR(ymd: string): string {
   const weekday = startOfDayBR(ymd).getUTCDay(); // 0=Sun..6=Sat

@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 import { formatDateBR } from "@/lib/tz";
+import { DM_OPCOES, type Dm } from "@/lib/types";
 
 interface ReparoRow {
   id: string;
@@ -9,8 +19,34 @@ interface ReparoRow {
   container_numero: string;
   armador: string;
   padrao: string;
+  dm: Dm | null;
   valor_faturado?: string | null;
   faturado_em?: string | null;
+}
+
+interface PontoDia {
+  data: string;
+  quantidade: number;
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatDia(iso: string) {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: { payload: PontoDia }[] }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="card p-2.5 text-xs shadow-lg">
+      <p className="font-semibold mb-0.5">{formatDia(p.data)}</p>
+      <p>{p.quantidade} reparo(s)</p>
+    </div>
+  );
 }
 
 export default function OficinaClient({
@@ -24,11 +60,24 @@ export default function OficinaClient({
   const [meta, setMeta] = useState(35);
   const [faltam, setFaltam] = useState(35);
   const [valorEstimado, setValorEstimado] = useState<number | undefined>(undefined);
+
   const [numero, setNumero] = useState("");
-  const [pending, setPending] = useState<string[]>([]);
+  const [dm, setDm] = useState<Dm>("DM1");
+  const [checking, setChecking] = useState(false);
+  const [pending, setPending] = useState<{ numero: string; dm: Dm }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
+
+  const [series7d, setSeries7d] = useState<PontoDia[]>([]);
+  const [dmMes, setDmMes] = useState<Record<string, number>>({});
+  const [metaDiaria, setMetaDiaria] = useState(35);
+
+  const [historyDate, setHistoryDate] = useState(todayStr());
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRows, setHistoryRows] = useState<ReparoRow[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/reparos");
@@ -39,16 +88,51 @@ export default function OficinaClient({
     setValorEstimado(data.valorEstimado);
   }, []);
 
+  const loadSummary = useCallback(async () => {
+    const res = await fetch("/api/reparos/summary");
+    if (res.ok) {
+      const data = await res.json();
+      setSeries7d(data.series7d ?? []);
+      setDmMes(data.dmMes ?? {});
+      setMetaDiaria(data.metaDiaria ?? 35);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
+    loadSummary();
+    const interval = setInterval(() => {
+      load();
+      loadSummary();
+    }, 15000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, loadSummary]);
 
-  function addPending() {
+  async function addPending() {
     const n = numero.trim().toUpperCase();
-    if (n && !pending.includes(n)) setPending([...pending, n]);
-    setNumero("");
+    setAddError(null);
+    if (!n) return;
+    if (pending.some((p) => p.numero === n)) {
+      setAddError("Esse container já está na lista.");
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await fetch(`/api/containers/check?numero=${encodeURIComponent(n)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setAddError(data.error ?? "Erro ao consultar o estoque.");
+        return;
+      }
+      if (!data.existe) {
+        setAddError("Container não encontrado no estoque.");
+        return;
+      }
+      setPending((prev) => [...prev, { numero: n, dm }]);
+      setNumero("");
+    } finally {
+      setChecking(false);
+    }
   }
 
   async function submitAll() {
@@ -58,7 +142,7 @@ export default function OficinaClient({
     const res = await fetch("/api/reparos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numeros: pending }),
+      body: JSON.stringify({ itens: pending }),
     });
     const data = await res.json();
     setSubmitting(false);
@@ -73,6 +157,7 @@ export default function OficinaClient({
       setMessage(`${data.created.length} container(s) marcados como OK.`);
     }
     load();
+    loadSummary();
   }
 
   async function saveValor(id: string) {
@@ -85,6 +170,19 @@ export default function OficinaClient({
       body: JSON.stringify({ valor }),
     });
     load();
+    if (historyOpen) abrirHistorico(historyDate);
+  }
+
+  async function abrirHistorico(dia: string) {
+    setHistoryDate(dia);
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    const res = await fetch(`/api/reparos?data=${dia}`);
+    if (res.ok) {
+      const data = await res.json();
+      setHistoryRows(data.reparos ?? []);
+    }
+    setHistoryLoading(false);
   }
 
   const atingiuMeta = rows.length >= meta;
@@ -112,6 +210,36 @@ export default function OficinaClient({
         )}
       </div>
 
+      <div className="card p-5">
+        <h2 className="text-sm font-semibold mb-3">Últimos 7 dias</h2>
+        <div style={{ height: 150 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={series7d} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
+              <XAxis dataKey="data" tickFormatter={formatDia} tick={{ fontSize: 10 }} interval={0} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(22,163,74,0.06)" }} />
+              <ReferenceLine
+                y={metaDiaria}
+                stroke="var(--danger)"
+                strokeDasharray="4 4"
+                label={{ value: `Meta ${metaDiaria}`, fontSize: 10, position: "insideTopRight" }}
+              />
+              <Bar dataKey="quantidade" fill="var(--success)" radius={[6, 6, 0, 0]} maxBarSize={28}>
+                <LabelList dataKey="quantidade" position="top" style={{ fontSize: 11, fill: "var(--success)", fontWeight: 600 }} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+          {DM_OPCOES.map((opt) => (
+            <div key={opt} className="rounded-xl bg-indigo-50 px-3 py-2.5 text-center">
+              <p className="text-[11px] font-semibold text-indigo-700">{opt}</p>
+              <p className="text-lg font-bold text-indigo-900">{dmMes[opt] ?? 0}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-[var(--muted)] mt-2">Totais do mês por DM · reinicia todo início de mês.</p>
+      </div>
+
       {canRegister && (
         <div className="card p-4">
           <h2 className="text-sm font-semibold mb-3">Registrar containers reparados</h2>
@@ -123,8 +251,13 @@ export default function OficinaClient({
               onChange={(e) => setNumero(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPending())}
             />
-            <button className="btn btn-secondary" onClick={addPending} type="button">
-              Adicionar
+            <select className="input max-w-[110px]" value={dm} onChange={(e) => setDm(e.target.value as Dm)}>
+              {DM_OPCOES.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            <button className="btn btn-secondary disabled:opacity-50" onClick={addPending} type="button" disabled={checking}>
+              {checking ? "Verificando..." : "Adicionar"}
             </button>
             <button
               className="btn btn-primary disabled:opacity-50"
@@ -134,13 +267,14 @@ export default function OficinaClient({
               {submitting ? "Salvando..." : `Salvar (${pending.length})`}
             </button>
           </div>
+          {addError && <p className="text-sm text-[var(--danger)] mt-2">{addError}</p>}
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {pending.map((p) => (
-                <span key={p} className="badge bg-indigo-50 text-indigo-700">
-                  {p}
+                <span key={p.numero} className="badge bg-indigo-50 text-indigo-700">
+                  {p.numero} · {p.dm}
                   <button
-                    onClick={() => setPending(pending.filter((x) => x !== p))}
+                    onClick={() => setPending(pending.filter((x) => x.numero !== p.numero))}
                     className="ml-1"
                   >
                     ×
@@ -156,65 +290,94 @@ export default function OficinaClient({
       )}
 
       <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Reparados hoje</h2>
-          <span className={`badge ${atingiuMeta ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-            {rows.length} / {meta} unidades
-          </span>
+        <h2 className="text-sm font-semibold mb-3">Consultar histórico de reparos</h2>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="text-xs font-medium text-[var(--muted)] block mb-1">Data</label>
+            <input
+              type="date"
+              className="input"
+              value={historyDate}
+              onChange={(e) => abrirHistorico(e.target.value)}
+            />
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={() => abrirHistorico(historyDate)}>
+            Ver reparados
+          </button>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
-              <th className="px-3 py-2 font-medium">Container</th>
-              <th className="px-3 py-2 font-medium">Armador</th>
-              <th className="px-3 py-2 font-medium">Padrão</th>
-              <th className="px-3 py-2 font-medium">Data do Reparo</th>
-              <th className="px-3 py-2 font-medium">Data da Estimativa</th>
-              {canFinance && <th className="px-3 py-2 font-medium">Valor faturado</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
-                <td className="px-3 py-2 font-medium">{r.container_numero}</td>
-                <td className="px-3 py-2">{r.armador}</td>
-                <td className="px-3 py-2">{r.padrao}</td>
-                <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
-                <td className="px-3 py-2 text-[var(--muted)]">
-                  {r.faturado_em ? formatDateBR(r.faturado_em) : "—"}
-                </td>
-                {canFinance && (
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="input max-w-[120px]"
-                        placeholder="0,00"
-                        defaultValue={r.valor_faturado ?? ""}
-                        onChange={(e) =>
-                          setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
-                        }
-                      />
-                      <button
-                        className="btn btn-secondary text-xs px-2 py-1"
-                        onClick={() => saveValor(r.id)}
-                      >
-                        Salvar
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={canFinance ? 6 : 5} className="px-3 py-8 text-center text-[var(--muted)]">
-                  Nenhum reparo registrado hoje ainda.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
+
+      {historyOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setHistoryOpen(false)}
+        >
+          <div
+            className="card p-6 w-full max-w-3xl max-h-[85vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold">Reparados em {formatDateBR(`${historyDate}T12:00:00-03:00`)}</h3>
+              <button onClick={() => setHistoryOpen(false)} className="text-[var(--muted)] hover:text-[var(--foreground)] text-xl leading-none">
+                ×
+              </button>
+            </div>
+            {historyLoading && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
+            {!historyLoading && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
+                    <th className="px-3 py-2 font-medium">Container</th>
+                    <th className="px-3 py-2 font-medium">DM</th>
+                    <th className="px-3 py-2 font-medium">Armador</th>
+                    <th className="px-3 py-2 font-medium">Padrão</th>
+                    <th className="px-3 py-2 font-medium">Data do Reparo</th>
+                    {canFinance && <th className="px-3 py-2 font-medium">Valor faturado</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyRows.map((r) => (
+                    <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium">{r.container_numero}</td>
+                      <td className="px-3 py-2 text-[var(--muted)]">{r.dm ?? "—"}</td>
+                      <td className="px-3 py-2">{r.armador}</td>
+                      <td className="px-3 py-2">{r.padrao}</td>
+                      <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
+                      {canFinance && (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              className="input max-w-[120px]"
+                              placeholder="0,00"
+                              defaultValue={r.valor_faturado ?? ""}
+                              onChange={(e) =>
+                                setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
+                              }
+                            />
+                            <button
+                              className="btn btn-secondary text-xs px-2 py-1"
+                              onClick={() => saveValor(r.id)}
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {historyRows.length === 0 && (
+                    <tr>
+                      <td colSpan={canFinance ? 6 : 5} className="px-3 py-8 text-center text-[var(--muted)]">
+                        Nenhum reparo registrado nesse dia.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
