@@ -19,11 +19,8 @@ export default function Nav({ session }: { session: SessionPayload }) {
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-white flex flex-col p-4 h-screen sticky top-0 overflow-y-auto">
       <div className="flex items-center gap-2 px-2 py-3 mb-2">
-        <div className="w-8 h-8 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center font-bold text-sm">
-          SJP
-        </div>
         <div>
-          <div className="text-sm font-semibold leading-tight">Depot SJP</div>
+          <div className="text-sm font-semibold leading-tight">Vale do Tibagi</div>
           <div className="text-[11px] text-[var(--muted)] leading-tight">
             {ROLE_LABELS[session.role]}
           </div>

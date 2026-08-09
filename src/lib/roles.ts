@@ -29,7 +29,7 @@ export const ALL_TABS: Tab[] = [
 ];
 
 export const TAB_LABELS: Record<Tab, { label: string; icon: string }> = {
-  dashboard: { label: "Dashboard", icon: "📊" },
+  dashboard: { label: "Indicadores", icon: "📊" },
   estoque: { label: "Estoque", icon: "📦" },
   oficina: { label: "Oficina", icon: "🔧" },
   ocorrencias: { label: "Ocorrências", icon: "⚠️" },
