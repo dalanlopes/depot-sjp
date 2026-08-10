@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ARMADORES, SOLICITANTES, SOLICITANTE_LABELS, PADRAO_LABELS, type Armador, type SolicitanteTipo } from "@/lib/types";
-import { formatDateBR, formatDateTimeBR, todayBR } from "@/lib/tz";
+import { formatDateBR, formatDateTimeBR, todayBR, addDaysBR, nowHourBR } from "@/lib/tz";
 
 interface ProgramacaoRow {
   id: string;
@@ -42,9 +42,33 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
   const [loadingDetalhe, setLoadingDetalhe] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
 
+  // A lista só mostra hoje e, até 12h depois da virada do dia, o dia anterior
+  // também (pra quem está fechando um turno que passou da meia-noite). Depois
+  // disso o dia anterior some da lista — o histórico completo fica no
+  // Relatórios. Cada dia visível começa aberto, mas pode ser fechado/reaberto
+  // clicando no cabeçalho.
+  const hoje = todayBR();
+  const ontem = addDaysBR(hoje, -1);
+  const ontemNaJanela = nowHourBR() < 12;
+
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => {
+    const init = new Set<string>([hoje]);
+    if (ontemNaJanela) init.add(ontem);
+    return init;
+  });
+
+  function toggleDate(data: string) {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(data)) next.delete(data);
+      else next.add(data);
+      return next;
+    });
+  }
+
   const loadRows = useCallback(async () => {
     setLoadingRows(true);
-    const res = await fetch("/api/programacao?dias=14");
+    const res = await fetch("/api/programacao?dias=1");
     if (res.ok) {
       const data = await res.json();
       setRows(data.programacoes ?? []);
@@ -59,14 +83,16 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
   }, [loadRows]);
 
   const porData = useMemo(() => {
+    const datasVisiveis = new Set([hoje, ...(ontemNaJanela ? [ontem] : [])]);
     const map = new Map<string, ProgramacaoRow[]>();
     for (const r of rows) {
+      if (!datasVisiveis.has(r.data_retirada)) continue;
       const arr = map.get(r.data_retirada);
       if (arr) arr.push(r);
       else map.set(r.data_retirada, [r]);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [rows]);
+  }, [rows, hoje, ontem, ontemNaJanela]);
 
   async function excluirProgramacao(r: ProgramacaoRow) {
     if (!confirm(`Excluir a programação de ${r.solicitante || "—"} (${formatDateBR(`${r.data_retirada}T12:00:00-03:00`)})?`)) return;
@@ -206,76 +232,112 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
         {loadingRows && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
         {!loadingRows && porData.length === 0 && (
           <div className="card p-10 text-center text-sm text-[var(--muted)]">
-            Nenhuma programação nos últimos 14 dias.
+            Nenhuma programação para hoje.
           </div>
         )}
         <div className="space-y-4">
-          {porData.map(([data, itens]) => (
+          {porData.map(([data, itens]) => {
+            const dataAberta = expandedDates.has(data);
+            return (
             <div key={data} className="card overflow-hidden">
-              <div className="px-4 py-3 border-b border-[var(--border)] bg-gray-50">
+              <button
+                type="button"
+                onClick={() => toggleDate(data)}
+                className="w-full px-4 py-3 border-b border-[var(--border)] bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
+              >
                 <span className="text-sm font-semibold">{formatDateBR(`${data}T12:00:00-03:00`)}</span>
-              </div>
+                <span className="text-xs text-[var(--muted)] flex items-center gap-2">
+                  {itens.length} pedido{itens.length === 1 ? "" : "s"}
+                  <span className={`transition-transform ${dataAberta ? "rotate-180" : ""}`}>▾</span>
+                </span>
+              </button>
+              {dataAberta && (
               <div>
                 {itens.map((r) => {
                   const completo = r.realizada >= r.quantidade;
                   const faltam = Math.max(r.quantidade - r.realizada, 0);
                   return (
-                    <div key={r.id} className="border-b border-[var(--border)] last:border-0 flex items-stretch">
-                      <button
-                        type="button"
-                        onClick={() => toggleCard(r.id)}
-                        className="flex-1 text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3 min-w-0"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{r.solicitante || "—"}</p>
-                          <p className="text-xs text-[var(--muted)] mt-0.5">
-                            {SOLICITANTE_LABELS[r.destino]} · {r.armador}
-                          </p>
-                        </div>
-                        <span className={`badge shrink-0 ${completo ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                          {r.realizada} realizada{r.realizada === 1 ? "" : "s"} · {faltam} falta{faltam === 1 ? "" : "m"}
-                        </span>
-                      </button>
-                      {podeEditar && (
-                      <button
-                        type="button"
-                        onClick={() => excluirProgramacao(r)}
-                        disabled={excluindo === r.id}
-                        className="px-3 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
-                        title="Excluir programação"
-                      >
-                        {excluindo === r.id ? "..." : "🗑"}
-                      </button>
-                      )}
+                    <div key={r.id} className="border-b border-[var(--border)] last:border-0">
+                      <div className="flex items-stretch">
+                        <button
+                          type="button"
+                          onClick={() => toggleCard(r.id)}
+                          className="flex-1 text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3 min-w-0"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{r.armador}</p>
+                            <p className="text-xs text-[var(--muted)] mt-0.5">
+                              {SOLICITANTE_LABELS[r.destino]} · {r.solicitante || "—"}
+                            </p>
+                          </div>
+                          <span className={`badge shrink-0 ${completo ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                            {r.realizada} realizada{r.realizada === 1 ? "" : "s"} · {faltam} falta{faltam === 1 ? "" : "m"}
+                          </span>
+                        </button>
+                        {podeEditar && (
+                        <button
+                          type="button"
+                          onClick={() => excluirProgramacao(r)}
+                          disabled={excluindo === r.id}
+                          className="px-3 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
+                          title="Excluir programação"
+                        >
+                          {excluindo === r.id ? "..." : "🗑"}
+                        </button>
+                        )}
+                      </div>
                       {expandedId === r.id && (
-                        <div className="border-t border-[var(--border)] p-4 bg-gray-50 text-sm space-y-2">
-                          {loadingDetalhe === r.id && <p className="text-[var(--muted)]">Carregando...</p>}
+                        <div className="border-t border-[var(--border)] p-4 bg-gray-50">
+                          {loadingDetalhe === r.id && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
                           {loadingDetalhe !== r.id && (detalhes[r.id]?.length ?? 0) === 0 && (
-                            <p className="text-[var(--muted)]">Nenhuma vaga registrada.</p>
+                            <p className="text-sm text-[var(--muted)]">Nenhuma vaga registrada.</p>
                           )}
-                          {loadingDetalhe !== r.id &&
-                            detalhes[r.id]?.map((c) => (
-                              <div key={c.id} className="flex items-center justify-between border-b border-[var(--border)] last:border-0 pb-2 last:pb-0">
-                                {c.status === "CONCLUIDO" ? (
-                                  <>
-                                    <span className="font-medium">{c.container_numero}</span>
-                                    <span className="text-[var(--muted)]">CM {c.codigo_cm_veiculo}</span>
-                                    <span className="text-[var(--muted)]">{c.padrao ? PADRAO_LABELS[c.padrao as keyof typeof PADRAO_LABELS] : "—"}</span>
-                                    <span className="text-[var(--muted)]">{c.data ? formatDateTimeBR(c.data) : "—"}</span>
-                                  </>
-                                ) : (
-                                  <span className="text-amber-600">Pendente de container e CM</span>
-                                )}
-                              </div>
-                            ))}
+                          {loadingDetalhe !== r.id && (detalhes[r.id]?.length ?? 0) > 0 && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-[10px] uppercase tracking-wide text-[var(--muted)] border-b border-[var(--border)]">
+                                    <th className="py-1.5 pr-3 font-medium">Vaga</th>
+                                    <th className="py-1.5 pr-3 font-medium">Container</th>
+                                    <th className="py-1.5 pr-3 font-medium">CM</th>
+                                    <th className="py-1.5 pr-3 font-medium">Padrão</th>
+                                    <th className="py-1.5 font-medium">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {detalhes[r.id]?.map((c, i) => (
+                                    <tr key={c.id} className="border-b border-[var(--border)] last:border-0">
+                                      <td className="py-1.5 pr-3 text-[var(--muted)]">{i + 1}</td>
+                                      <td className="py-1.5 pr-3 font-medium">{c.container_numero ?? "—"}</td>
+                                      <td className="py-1.5 pr-3">{c.codigo_cm_veiculo ?? "—"}</td>
+                                      <td className="py-1.5 pr-3">
+                                        {c.padrao ? PADRAO_LABELS[c.padrao as keyof typeof PADRAO_LABELS] : "—"}
+                                      </td>
+                                      <td className="py-1.5">
+                                        {c.status === "CONCLUIDO" ? (
+                                          <span className="badge bg-green-100 text-green-700 text-[10px]">
+                                            {c.data ? formatDateTimeBR(c.data) : "Concluído"}
+                                          </span>
+                                        ) : (
+                                          <span className="badge bg-amber-100 text-amber-700 text-[10px]">Pendente</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

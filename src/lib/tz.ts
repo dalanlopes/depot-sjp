@@ -75,3 +75,10 @@ export function mondayOfWeekBR(ymd: string): string {
 export function sundayOfWeekBR(ymd: string): string {
   return addDaysBR(mondayOfWeekBR(ymd), 6);
 }
+
+/** Current hour of day (0-23) in Brazil time. */
+export function nowHourBR(): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", hour12: false }).format(new Date())
+  );
+}
