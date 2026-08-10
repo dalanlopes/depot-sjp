@@ -37,6 +37,7 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
   const [padrao, setPadrao] = useState("");
   const [buscaNumero, setBuscaNumero] = useState("");
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
+  const [savingPadrao, setSavingPadrao] = useState<string | null>(null);
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
@@ -75,6 +76,18 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
       body: JSON.stringify({ status: novoStatus }),
     });
     setSavingStatus(null);
+    if (selecionado) loadDetalhe(selecionado);
+    loadSummary();
+  }
+
+  async function salvarPadrao(numero: string, novoPadrao: string) {
+    setSavingPadrao(numero);
+    await fetch(`/api/containers/${encodeURIComponent(numero)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ padrao: novoPadrao }),
+    });
+    setSavingPadrao(null);
     if (selecionado) loadDetalhe(selecionado);
     loadSummary();
   }
@@ -195,7 +208,24 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
                       <tr key={c.numero} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
                         <td className="px-3 py-2 font-medium">{c.numero}</td>
                         <td className="px-3 py-2">{c.tipo ?? "—"}</td>
-                        <td className="px-3 py-2">{c.padrao}</td>
+                        <td className="px-3 py-2">
+                          {canEdit ? (
+                            <select
+                              className="input py-1 px-2 text-xs w-auto min-w-0"
+                              value={c.padrao}
+                              disabled={savingPadrao === c.numero}
+                              onChange={(e) => salvarPadrao(c.numero, e.target.value)}
+                            >
+                              {PADROES.map((p) => (
+                                <option key={p} value={p}>
+                                  {p} · {PADRAO_LABELS[p]}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            c.padrao
+                          )}
+                        </td>
                         <td className="px-3 py-2">
                           {canEdit ? (
                             <select
