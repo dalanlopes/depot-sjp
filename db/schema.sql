@@ -1,7 +1,7 @@
 -- Depot SJP - Schema relacional (PostgreSQL)
 -- Fonte única de verdade para containers, reparos, ocorrências, programação e coletas.
 
-CREATE TYPE role AS ENUM ('MECANICO', 'ANALISTA_PROGRAMACAO', 'ANALISTA_FATURAMENTO', 'GESTOR');
+CREATE TYPE role AS ENUM ('MECANICO', 'ANALISTA_PROGRAMACAO', 'ANALISTA_FATURAMENTO', 'GESTOR', 'VISUALIZADOR');
 CREATE TYPE armador AS ENUM ('MAERSK', 'MSC', 'HAPAG', 'ZIM', 'LOGIN');
 CREATE TYPE padrao AS ENUM ('AL', 'CG', 'OU'); -- OU = Aguardando Vistoria (ainda não classificado)
 CREATE TYPE status_container AS ENUM ('WS', 'AR', 'AE', 'RE', 'OK');
