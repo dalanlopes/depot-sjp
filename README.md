@@ -1,5 +1,8 @@
 # Depot SJP — Gestão de Containers
 
+<!-- deploy sync: 2026-08-10 -->
+
+
 Sistema de gestão de estoque e reparos de containers (Estoque / Oficina / Ocorrências /
 Programação / Coletas / Importação / Dashboard), com controle de acesso por perfil.
 
