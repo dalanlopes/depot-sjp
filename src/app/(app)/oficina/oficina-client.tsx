@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
-import { formatDateBR } from "@/lib/tz";
+import { formatDateBR, todayBR } from "@/lib/tz";
 import { DM_OPCOES, type Dm } from "@/lib/types";
 
 interface ReparoRow {
@@ -33,7 +33,7 @@ interface PontoDia {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return todayBR();
 }
 
 function formatDia(iso: string) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatDateBR } from "@/lib/tz";
+import { formatDateBR, todayBR } from "@/lib/tz";
 
 interface Ocorrencia {
   id: string;
@@ -11,7 +11,7 @@ interface Ocorrencia {
 }
 
 export default function OcorrenciasClient() {
-  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(() => todayBR());
   const [motivo, setMotivo] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

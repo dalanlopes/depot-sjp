@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { formatDateBR, formatDateTimeBR } from "@/lib/tz";
+import { formatDateBR, formatDateTimeBR, todayBR, addDaysBR } from "@/lib/tz";
 import { SOLICITANTE_LABELS, type SolicitanteTipo } from "@/lib/types";
 
 interface ColetaRow {
@@ -48,13 +48,11 @@ interface ProgramacaoGrupo {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return todayBR();
 }
 
 function daysAgoStr(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return addDaysBR(todayBR(), -n);
 }
 
 export default function ColetasClient() {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ARMADORES, SOLICITANTES, SOLICITANTE_LABELS, PADRAO_LABELS, type Armador, type SolicitanteTipo } from "@/lib/types";
-import { formatDateBR, formatDateTimeBR } from "@/lib/tz";
+import { formatDateBR, formatDateTimeBR, todayBR } from "@/lib/tz";
 
 interface ProgramacaoRow {
   id: string;
@@ -25,7 +25,7 @@ interface ColetaDetalhe {
 }
 
 export default function ProgramacaoClient() {
-  const [dataRetirada, setDataRetirada] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dataRetirada, setDataRetirada] = useState(() => todayBR());
   const [solicitante, setSolicitante] = useState("");
   const [destino, setDestino] = useState<SolicitanteTipo>("MATRIZ");
   const [armador, setArmador] = useState<Armador>(ARMADORES[0]);
