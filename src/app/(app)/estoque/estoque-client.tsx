@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import StatusBadge from "@/components/status-badge";
 import { formatDateBR, diasEmEstoque } from "@/lib/tz";
-import { PADROES, PADRAO_LABELS, STATUS_CONTAINER, type StatusContainer, type Armador, type Padrao } from "@/lib/types";
+import { PADROES, PADRAO_LABELS, STATUS_CONTAINER, STATUS_LABELS, type StatusContainer, type Armador, type Padrao } from "@/lib/types";
 
 interface ArmadorSummary {
   armador: Armador;
@@ -26,7 +26,7 @@ interface ContainerDetalhe {
   faturado_em: string | null;
 }
 
-export default function EstoqueClient() {
+export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }) {
   const [armadores, setArmadores] = useState<ArmadorSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +36,7 @@ export default function EstoqueClient() {
   const [status, setStatus] = useState("");
   const [padrao, setPadrao] = useState("");
   const [buscaNumero, setBuscaNumero] = useState("");
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
@@ -65,6 +66,18 @@ export default function EstoqueClient() {
   useEffect(() => {
     if (selecionado) loadDetalhe(selecionado);
   }, [selecionado, loadDetalhe]);
+
+  async function salvarStatus(numero: string, novoStatus: string) {
+    setSavingStatus(numero);
+    await fetch(`/api/containers/${encodeURIComponent(numero)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: novoStatus }),
+    });
+    setSavingStatus(null);
+    if (selecionado) loadDetalhe(selecionado);
+    loadSummary();
+  }
 
   const detalhesFiltrados = buscaNumero.trim()
     ? detalhes.filter((c) => c.numero.toUpperCase().includes(buscaNumero.trim().toUpperCase()))
@@ -183,7 +196,24 @@ export default function EstoqueClient() {
                         <td className="px-3 py-2 font-medium">{c.numero}</td>
                         <td className="px-3 py-2">{c.tipo ?? "—"}</td>
                         <td className="px-3 py-2">{c.padrao}</td>
-                        <td className="px-3 py-2"><StatusBadge status={c.status} /></td>
+                        <td className="px-3 py-2">
+                          {canEdit ? (
+                            <select
+                              className="input py-1 px-2 text-xs w-auto min-w-0"
+                              value={c.status}
+                              disabled={savingStatus === c.numero}
+                              onChange={(e) => salvarStatus(c.numero, e.target.value)}
+                            >
+                              {STATUS_CONTAINER.map((s) => (
+                                <option key={s} value={s}>
+                                  {s} · {STATUS_LABELS[s]}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <StatusBadge status={c.status} />
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-[var(--muted)]">
                           {c.entrada ? formatDateBR(c.entrada) : "—"}
                         </td>
