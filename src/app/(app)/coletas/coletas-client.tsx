@@ -321,9 +321,9 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
                         className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3"
                       >
                         <div>
-                          <p className="text-sm font-medium">{g.solicitante || "—"}</p>
+                          <p className="text-sm font-medium">{g.armador}</p>
                           <p className="text-xs text-[var(--muted)] mt-0.5">
-                            {SOLICITANTE_LABELS[g.destino]} · {g.armador}
+                            {SOLICITANTE_LABELS[g.destino]} · {g.solicitante || "—"}
                           </p>
                         </div>
                         <span className="badge shrink-0 bg-amber-100 text-amber-700">
