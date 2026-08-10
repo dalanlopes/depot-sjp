@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ROLE_LABELS, TAB_LABELS } from "@/lib/roles";
+import { ALL_TABS, ROLE_LABELS, TAB_LABELS } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/auth";
 
 export default function Nav({ session }: { session: SessionPayload }) {
   const pathname = usePathname();
   const router = useRouter();
-  const tabs = session.tabs ?? [];
+  // Sempre na mesma ordem (a do menu), independente de como as abas
+  // foram salvas para cada usuário.
+  const tabs = ALL_TABS.filter((t) => (session.tabs ?? []).includes(t));
   const [open, setOpen] = useState(false);
 
   // Fecha o menu mobile sempre que a rota muda
@@ -89,13 +91,12 @@ export default function Nav({ session }: { session: SessionPayload }) {
                 key={tab}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-[var(--primary)] text-white"
                     : "text-[var(--foreground)] hover:bg-gray-100"
                 }`}
               >
-                <span>{meta.icon}</span>
                 {meta.label}
               </Link>
             );
