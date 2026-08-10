@@ -15,8 +15,8 @@ export type Tab =
   | "ocorrencias"
   | "programacao"
   | "coletas"
-  | "relatorios"
   | "importacao"
+  | "relatorios"
   | "usuarios";
 
 export const ALL_TABS: Tab[] = [
@@ -26,8 +26,8 @@ export const ALL_TABS: Tab[] = [
   "ocorrencias",
   "programacao",
   "coletas",
-  "relatorios",
   "importacao",
+  "relatorios",
   "usuarios",
 ];
 
@@ -56,8 +56,8 @@ export const TAB_ACCESS: Record<Role, Tab[]> = {
     "ocorrencias",
     "programacao",
     "coletas",
-    "relatorios",
     "importacao",
+    "relatorios",
     "usuarios",
   ],
   VISUALIZADOR: [
