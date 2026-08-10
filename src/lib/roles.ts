@@ -119,8 +119,9 @@ export function canDeleteOcorrencia(role: Role): boolean {
   return role === "GESTOR";
 }
 
-// Corrigir o padrão (AL/CG/OU) de um container já cadastrado é uma edição de
-// dado mestre do estoque — mesmo nível de acesso da importação de planilha.
+// Corrigir o padrão (AL/CG/OU) de um container já cadastrado, direto no
+// popout de reparados da Oficina. Liberado para quem também lança os valores
+// de faturamento (Gestor e Analista de Faturamento).
 export function canEditContainerData(role: Role): boolean {
-  return role === "GESTOR";
+  return role === "GESTOR" || role === "ANALISTA_FATURAMENTO";
 }
