@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession, generateSetupToken } from "@/lib/auth";
-import { canManageUsers, ALL_TABS } from "@/lib/roles";
+import { canManageUsers, ALL_TABS, ROLE_LABELS } from "@/lib/roles";
 
 const SETUP_TOKEN_VALIDADE_DIAS = 7;
+
+// Deriva a lista de perfis válidos de ROLE_LABELS (fonte única de verdade em
+// src/lib/roles.ts), em vez de repetir os valores aqui — assim um perfil novo
+// nunca mais fica esquecido nesta validação.
+const ROLE_VALUES = Object.keys(ROLE_LABELS) as [string, ...string[]];
 
 const schema = z.object({
   nome: z.string().min(2),
   email: z.string().email("E-mail inválido."),
-  role: z.enum(["MECANICO", "ANALISTA_PROGRAMACAO", "ANALISTA_FATURAMENTO", "GESTOR"]),
+  role: z.enum(ROLE_VALUES),
   tabs: z.array(z.enum(ALL_TABS as [string, ...string[]])).default([]),
   podeVerFaturamento: z.boolean().default(false),
 });
@@ -92,7 +97,7 @@ export async function POST(req: NextRequest) {
       nome: parsed.data.nome,
       email,
       senha_hash: null,
-      role: parsed.data.role,
+      role: parsed.data.role as never,
       tabs: parsed.data.tabs.length > 0 ? parsed.data.tabs : null,
       pode_ver_faturamento: parsed.data.podeVerFaturamento,
       setup_token: setupToken,
