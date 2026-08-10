@@ -331,7 +331,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pr-3 text-right space-x-3 whitespace-nowrap">
+                    <td className="py-2 pr-3 text-left space-x-3 whitespace-nowrap">
                       <button
                         onClick={() => (editingId === u.id ? setEditingId(null) : iniciarEdicao(u))}
                         className="text-[var(--primary)] hover:underline"
