@@ -54,6 +54,8 @@ export default function ProgramacaoClient() {
 
   useEffect(() => {
     loadRows();
+    const interval = setInterval(loadRows, 60000);
+    return () => clearInterval(interval);
   }, [loadRows]);
 
   const porData = useMemo(() => {

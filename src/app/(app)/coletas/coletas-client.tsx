@@ -100,10 +100,17 @@ export default function ColetasClient() {
   useEffect(() => {
     loadSummary();
     loadPendentes();
+    const interval = setInterval(() => {
+      loadSummary();
+      loadPendentes();
+    }, 60000);
+    return () => clearInterval(interval);
   }, [loadSummary, loadPendentes]);
 
   useEffect(() => {
     loadReport();
+    const interval = setInterval(loadReport, 60000);
+    return () => clearInterval(interval);
   }, [loadReport]);
 
   function refreshAll() {

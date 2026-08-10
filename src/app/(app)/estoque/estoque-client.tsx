@@ -47,7 +47,7 @@ export default function EstoqueClient() {
 
   useEffect(() => {
     loadSummary();
-    const interval = setInterval(loadSummary, 20000);
+    const interval = setInterval(loadSummary, 60000);
     return () => clearInterval(interval);
   }, [loadSummary]);
 

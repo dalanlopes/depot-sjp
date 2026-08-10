@@ -34,6 +34,8 @@ export default function OcorrenciasClient() {
 
   useEffect(() => {
     loadHistorico();
+    const interval = setInterval(loadHistorico, 60000);
+    return () => clearInterval(interval);
   }, [loadHistorico]);
 
   async function handleSubmit(e: React.FormEvent) {

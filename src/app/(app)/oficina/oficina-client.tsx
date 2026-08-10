@@ -114,7 +114,7 @@ export default function OficinaClient({
     const interval = setInterval(() => {
       load();
       loadSummary();
-    }, 15000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [load, loadSummary]);
 
