@@ -1,5 +1,5 @@
 import { requireTab } from "@/lib/guard";
-import { canRegisterRepair, canViewFinance } from "@/lib/roles";
+import { canRegisterRepair, canViewFinance, canEditContainerData } from "@/lib/roles";
 import OficinaClient from "./oficina-client";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export default async function OficinaPage() {
       <OficinaClient
         canRegister={canRegisterRepair(session.role)}
         canFinance={canViewFinance(session)}
+        canEditPadrao={canEditContainerData(session.role)}
       />
     </div>
   );

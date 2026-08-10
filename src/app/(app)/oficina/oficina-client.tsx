@@ -13,7 +13,7 @@ import {
   LabelList,
 } from "recharts";
 import { formatDateBR, todayBR } from "@/lib/tz";
-import { DM_OPCOES, type Dm } from "@/lib/types";
+import { DM_OPCOES, PADROES, PADRAO_LABELS, type Dm } from "@/lib/types";
 
 interface ReparoRow {
   id: string;
@@ -56,9 +56,11 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 export default function OficinaClient({
   canRegister,
   canFinance,
+  canEditPadrao,
 }: {
   canRegister: boolean;
   canFinance: boolean;
+  canEditPadrao: boolean;
 }) {
   const [rows, setRows] = useState<ReparoRow[]>([]);
   const [meta, setMeta] = useState(35);
@@ -74,6 +76,7 @@ export default function OficinaClient({
   const [addError, setAddError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [excluindoReparo, setExcluindoReparo] = useState<string | null>(null);
+  const [savingPadrao, setSavingPadrao] = useState<string | null>(null);
 
   const [series7d, setSeries7d] = useState<PontoDia[]>([]);
   const [metaDiaria, setMetaDiaria] = useState(35);
@@ -208,6 +211,19 @@ export default function OficinaClient({
     });
     load();
     loadSummary();
+    if (historyOpen) abrirHistorico(historyDate);
+  }
+
+  async function salvarPadrao(r: ReparoRow, novoPadrao: string) {
+    if (novoPadrao === r.padrao) return;
+    setSavingPadrao(r.id);
+    await fetch(`/api/containers/${encodeURIComponent(r.container_numero)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ padrao: novoPadrao }),
+    });
+    setSavingPadrao(null);
+    load();
     if (historyOpen) abrirHistorico(historyDate);
   }
 
@@ -430,7 +446,24 @@ export default function OficinaClient({
                       </td>
                       <td className="px-3 py-2 text-[var(--muted)]">{r.dm ?? "—"}</td>
                       <td className="px-3 py-2">{r.armador}</td>
-                      <td className="px-3 py-2">{r.padrao}</td>
+                      <td className="px-3 py-2">
+                        {canEditPadrao ? (
+                          <select
+                            className="input py-1 px-2 text-xs w-auto min-w-0"
+                            value={r.padrao}
+                            disabled={savingPadrao === r.id}
+                            onChange={(e) => salvarPadrao(r, e.target.value)}
+                          >
+                            {PADROES.map((p) => (
+                              <option key={p} value={p}>
+                                {PADRAO_LABELS[p]}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          r.padrao
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
                       {canFinance && (
                         <td className="px-3 py-2">

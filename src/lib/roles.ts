@@ -118,3 +118,9 @@ export function canManageUsers(role: Role): boolean {
 export function canDeleteOcorrencia(role: Role): boolean {
   return role === "GESTOR";
 }
+
+// Corrigir o padrão (AL/CG/OU) de um container já cadastrado é uma edição de
+// dado mestre do estoque — mesmo nível de acesso da importação de planilha.
+export function canEditContainerData(role: Role): boolean {
+  return role === "GESTOR";
+}
