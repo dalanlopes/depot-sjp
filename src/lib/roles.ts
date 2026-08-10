@@ -114,3 +114,7 @@ export function defaultTabFor(session: SessionLike): Tab {
 export function canManageUsers(role: Role): boolean {
   return role === "GESTOR";
 }
+
+export function canDeleteOcorrencia(role: Role): boolean {
+  return role === "GESTOR";
+}

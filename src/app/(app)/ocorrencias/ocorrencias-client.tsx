@@ -19,6 +19,7 @@ export default function OcorrenciasClient() {
   const [historico, setHistorico] = useState<Ocorrencia[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [podeExcluir, setPodeExcluir] = useState(false);
 
   const loadHistorico = useCallback(async () => {
     setLoadingHistorico(true);
@@ -26,6 +27,7 @@ export default function OcorrenciasClient() {
     if (res.ok) {
       const json = await res.json();
       setHistorico(json.ocorrencias ?? []);
+      setPodeExcluir(!!json.podeExcluir);
     }
     setLoadingHistorico(false);
   }, []);
@@ -109,7 +111,7 @@ export default function OcorrenciasClient() {
                   <th className="px-3 py-2 font-medium">Data</th>
                   <th className="px-3 py-2 font-medium">Motivo</th>
                   <th className="px-3 py-2 font-medium">Registrado por</th>
-                  <th className="px-3 py-2 font-medium"></th>
+                  {podeExcluir && <th className="px-3 py-2 font-medium"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -118,15 +120,17 @@ export default function OcorrenciasClient() {
                     <td className="px-3 py-2 whitespace-nowrap text-[var(--muted)]">{formatDateBR(o.data)}</td>
                     <td className="px-3 py-2">{o.motivo}</td>
                     <td className="px-3 py-2 text-[var(--muted)]">{o.criado_por ?? "—"}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        onClick={() => excluirOcorrencia(o.id)}
-                        disabled={excluindo === o.id}
-                        className="text-xs text-[var(--muted)] hover:text-[var(--danger)] disabled:opacity-50"
-                      >
-                        {excluindo === o.id ? "..." : "Excluir"}
-                      </button>
-                    </td>
+                    {podeExcluir && (
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => excluirOcorrencia(o.id)}
+                          disabled={excluindo === o.id}
+                          className="text-xs text-[var(--muted)] hover:text-[var(--danger)] disabled:opacity-50"
+                        >
+                          {excluindo === o.id ? "..." : "Excluir"}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

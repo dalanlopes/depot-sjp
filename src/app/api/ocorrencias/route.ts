@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessTab } from "@/lib/roles";
+import { canAccessTab, canDeleteOcorrencia } from "@/lib/roles";
 import { startOfDayBR, addDaysBR, todayBR } from "@/lib/tz";
 
 const schema = z.object({
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     .limit(200)
     .execute();
 
-  return NextResponse.json({ ocorrencias });
+  return NextResponse.json({ ocorrencias, podeExcluir: canDeleteOcorrencia(session.role) });
 }
 
 export async function POST(req: NextRequest) {
