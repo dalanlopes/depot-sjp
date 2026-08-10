@@ -23,7 +23,7 @@ interface Solicitacao {
   criado_em: string;
 }
 
-const ROLES: Role[] = ["GESTOR", "MECANICO", "ANALISTA_PROGRAMACAO", "ANALISTA_FATURAMENTO"];
+const ROLES: Role[] = ["GESTOR", "MECANICO", "ANALISTA_PROGRAMACAO", "ANALISTA_FATURAMENTO", "VISUALIZADOR"];
 
 function TabCheckboxes({
   selected,

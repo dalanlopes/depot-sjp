@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessTab, canDeleteOcorrencia } from "@/lib/roles";
+import { canAccessTab, canDeleteOcorrencia, canRegisterOcorrencia } from "@/lib/roles";
 import { startOfDayBR, addDaysBR, todayBR } from "@/lib/tz";
 
 const schema = z.object({
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session, "ocorrencias")) {
+  if (!canAccessTab(session, "ocorrencias") || !canRegisterOcorrencia(session.role)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

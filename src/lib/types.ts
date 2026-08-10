@@ -4,7 +4,8 @@ export type Role =
   | "MECANICO"
   | "ANALISTA_PROGRAMACAO"
   | "ANALISTA_FATURAMENTO"
-  | "GESTOR";
+  | "GESTOR"
+  | "VISUALIZADOR";
 
 export type Armador = "MAERSK" | "MSC" | "HAPAG" | "ZIM" | "LOGIN";
 export type Padrao = "AL" | "CG" | "OU";

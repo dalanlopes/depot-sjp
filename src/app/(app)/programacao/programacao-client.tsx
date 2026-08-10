@@ -24,7 +24,7 @@ interface ColetaDetalhe {
   padrao: string | null;
 }
 
-export default function ProgramacaoClient() {
+export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: boolean }) {
   const [dataRetirada, setDataRetirada] = useState(() => todayBR());
   const [solicitante, setSolicitante] = useState("");
   const [destino, setDestino] = useState<SolicitanteTipo>("MATRIZ");
@@ -128,6 +128,7 @@ export default function ProgramacaoClient() {
 
   return (
     <div className="space-y-6">
+      {podeEditar && (
       <form onSubmit={handleSubmit} className="card p-5 max-w-xl space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="overflow-hidden rounded-xl">
@@ -198,6 +199,7 @@ export default function ProgramacaoClient() {
           </p>
         )}
       </form>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold mb-3">Programações recentes</h2>
@@ -234,6 +236,7 @@ export default function ProgramacaoClient() {
                           {r.realizada} realizada{r.realizada === 1 ? "" : "s"} · {faltam} falta{faltam === 1 ? "" : "m"}
                         </span>
                       </button>
+                      {podeEditar && (
                       <button
                         type="button"
                         onClick={() => excluirProgramacao(r)}
@@ -243,6 +246,7 @@ export default function ProgramacaoClient() {
                       >
                         {excluindo === r.id ? "..." : "🗑"}
                       </button>
+                      )}
                       {expandedId === r.id && (
                         <div className="border-t border-[var(--border)] p-4 bg-gray-50 text-sm space-y-2">
                           {loadingDetalhe === r.id && <p className="text-[var(--muted)]">Carregando...</p>}

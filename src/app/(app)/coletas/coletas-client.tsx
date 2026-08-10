@@ -55,7 +55,7 @@ function daysAgoStr(n: number) {
   return addDaysBR(todayBR(), -n);
 }
 
-export default function ColetasClient() {
+export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?: boolean }) {
   const [summary, setSummary] = useState<Summary | null>(null);
 
   const [pendentes, setPendentes] = useState<PendenteRow[]>([]);
@@ -294,6 +294,8 @@ export default function ColetasClient() {
                       </button>
                       {expandedGroup === programacaoId && (
                         <div className="border-t border-[var(--border)] p-4 bg-gray-50 space-y-3">
+                          {podeConfirmar ? (
+                          <>
                           <div className="flex flex-wrap gap-2 items-center">
                             {form.containers.map((c, i) => (
                               <div key={i} className="flex items-center gap-1">
@@ -337,6 +339,12 @@ export default function ColetasClient() {
                             >
                               + Adicionar outro container para o mesmo CM
                             </button>
+                          )}
+                          </>
+                          ) : (
+                            <p className="text-xs text-[var(--muted)]">
+                              {g.itens.length} vaga{g.itens.length > 1 ? "s" : ""} pendente{g.itens.length > 1 ? "s" : ""} de container e CM.
+                            </p>
                           )}
                         </div>
                       )}
@@ -393,7 +401,7 @@ export default function ColetasClient() {
                 <th className="px-4 py-3 font-medium">Padrão</th>
                 <th className="px-4 py-3 font-medium">Código CM</th>
                 <th className="px-4 py-3 font-medium">Data da Saída</th>
-                <th className="px-4 py-3 font-medium"></th>
+                {podeConfirmar && <th className="px-4 py-3 font-medium"></th>}
               </tr>
             </thead>
             <tbody>
@@ -404,6 +412,7 @@ export default function ColetasClient() {
                   <td className="px-4 py-3">{r.padrao ?? "—"}</td>
                   <td className="px-4 py-3">{r.codigo_cm_veiculo}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatDateTimeBR(r.data)}</td>
+                  {podeConfirmar && (
                   <td className="px-4 py-3 text-right">
                     <button
                       className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
@@ -413,6 +422,7 @@ export default function ColetasClient() {
                       {excluindoColeta === r.id ? "..." : "Excluir"}
                     </button>
                   </td>
+                  )}
                 </tr>
               ))}
               {!loadingReport && rows.length === 0 && (

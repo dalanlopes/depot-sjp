@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessTab } from "@/lib/roles";
+import { canAccessTab, canEditProgramacao } from "@/lib/roles";
 import { ARMADORES, SOLICITANTES } from "@/lib/types";
 import { addDaysBR, todayBR } from "@/lib/tz";
 
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session, "programacao")) {
+  if (!canAccessTab(session, "programacao") || !canEditProgramacao(session.role)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

@@ -5,6 +5,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   ANALISTA_PROGRAMACAO: "Analista de Programação/Matriz/Filial",
   ANALISTA_FATURAMENTO: "Analista de Faturamento",
   GESTOR: "Gestor",
+  VISUALIZADOR: "Visualizador (somente leitura)",
 };
 
 export type Tab =
@@ -54,6 +55,14 @@ export const TAB_ACCESS: Record<Role, Tab[]> = {
     "coletas",
     "importacao",
     "usuarios",
+  ],
+  VISUALIZADOR: [
+    "dashboard",
+    "estoque",
+    "oficina",
+    "ocorrencias",
+    "programacao",
+    "coletas",
   ],
 };
 
@@ -124,4 +133,18 @@ export function canDeleteOcorrencia(role: Role): boolean {
 // de faturamento (Gestor e Analista de Faturamento).
 export function canEditContainerData(role: Role): boolean {
   return role === "GESTOR" || role === "ANALISTA_FATURAMENTO";
+}
+
+// Perfil Visualizador tem acesso somente leitura: nunca pode criar, editar
+// ou excluir nada, mesmo que a aba esteja liberada para ele.
+export function isViewOnly(role: Role): boolean {
+  return role === "VISUALIZADOR";
+}
+
+export function canRegisterOcorrencia(role: Role): boolean {
+  return !isViewOnly(role);
+}
+
+export function canEditProgramacao(role: Role): boolean {
+  return !isViewOnly(role);
 }

@@ -56,10 +56,12 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 export default function OficinaClient({
   canRegister,
   canFinance,
+  canEditFinance = canFinance,
   canEditPadrao,
 }: {
   canRegister: boolean;
   canFinance: boolean;
+  canEditFinance?: boolean;
   canEditPadrao: boolean;
 }) {
   const [rows, setRows] = useState<ReparoRow[]>([]);
@@ -467,43 +469,55 @@ export default function OficinaClient({
                       <td className="px-3 py-2 text-[var(--muted)]">{formatDateBR(r.data)}</td>
                       {canFinance && (
                         <td className="px-3 py-2">
-                          <label className="flex items-center gap-1.5 text-[10px] text-[var(--muted)] mb-1.5">
-                            <input
-                              type="checkbox"
-                              checked={r.por_conta_depot}
-                              onChange={() => toggleDepot(r)}
-                            />
-                            Por conta do Depot
-                          </label>
-                          <div className="flex items-center gap-2">
-                            {r.por_conta_depot ? (
-                              <span className="text-xs text-[var(--muted)]">Não cobrado</span>
-                            ) : (
-                              <>
+                          {canEditFinance ? (
+                            <>
+                              <label className="flex items-center gap-1.5 text-[10px] text-[var(--muted)] mb-1.5">
                                 <input
-                                  className="input max-w-[110px]"
-                                  placeholder="0,00"
-                                  defaultValue={r.valor_faturado ?? ""}
-                                  onChange={(e) =>
-                                    setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
-                                  }
+                                  type="checkbox"
+                                  checked={r.por_conta_depot}
+                                  onChange={() => toggleDepot(r)}
                                 />
+                                Por conta do Depot
+                              </label>
+                              <div className="flex items-center gap-2">
+                                {r.por_conta_depot ? (
+                                  <span className="text-xs text-[var(--muted)]">Não cobrado</span>
+                                ) : (
+                                  <>
+                                    <input
+                                      className="input max-w-[110px]"
+                                      placeholder="0,00"
+                                      defaultValue={r.valor_faturado ?? ""}
+                                      onChange={(e) =>
+                                        setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                      }
+                                    />
+                                    <button
+                                      className="btn btn-secondary text-xs px-2 py-1"
+                                      onClick={() => saveValor(r.id)}
+                                    >
+                                      Salvar
+                                    </button>
+                                  </>
+                                )}
                                 <button
-                                  className="btn btn-secondary text-xs px-2 py-1"
-                                  onClick={() => saveValor(r.id)}
+                                  className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
+                                  onClick={() => excluirReparo(r)}
+                                  disabled={excluindoReparo === r.id}
                                 >
-                                  Salvar
+                                  {excluindoReparo === r.id ? "..." : "Excluir"}
                                 </button>
-                              </>
-                            )}
-                            <button
-                              className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
-                              onClick={() => excluirReparo(r)}
-                              disabled={excluindoReparo === r.id}
-                            >
-                              {excluindoReparo === r.id ? "..." : "Excluir"}
-                            </button>
-                          </div>
+                              </div>
+                            </>
+                          ) : r.por_conta_depot ? (
+                            <span className="text-xs text-[var(--muted)]">Por conta do Depot (não cobrado)</span>
+                          ) : (
+                            <span className="text-xs">
+                              {r.valor_faturado
+                                ? `R$ ${Number(r.valor_faturado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                : "—"}
+                            </span>
+                          )}
                         </td>
                       )}
                     </tr>
