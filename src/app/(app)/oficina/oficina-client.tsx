@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { formatDateBR, todayBR } from "@/lib/tz";
 import { DM_OPCOES, PADROES, PADRAO_LABELS, type Dm } from "@/lib/types";
+import CodeSelect from "@/components/code-select";
 
 interface ReparoRow {
   id: string;
@@ -450,18 +451,12 @@ export default function OficinaClient({
                       <td className="px-3 py-2">{r.armador}</td>
                       <td className="px-3 py-2">
                         {canEditPadrao ? (
-                          <select
-                            className="input py-1 px-2 text-xs w-auto min-w-0"
+                          <CodeSelect
                             value={r.padrao}
                             disabled={savingPadrao === r.id}
-                            onChange={(e) => salvarPadrao(r, e.target.value)}
-                          >
-                            {PADROES.map((p) => (
-                              <option key={p} value={p}>
-                                {PADRAO_LABELS[p]}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(v) => salvarPadrao(r, v)}
+                            options={PADROES.map((p) => ({ value: p, label: PADRAO_LABELS[p] }))}
+                          />
                         ) : (
                           r.padrao
                         )}

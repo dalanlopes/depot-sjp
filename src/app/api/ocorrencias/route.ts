@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab, canDeleteOcorrencia, canRegisterOcorrencia } from "@/lib/roles";
-import { startOfDayBR, addDaysBR, todayBR } from "@/lib/tz";
+import { startOfDayBR, endOfDayBR, addDaysBR, todayBR } from "@/lib/tz";
 
 const schema = z.object({
   data: z.string().min(1),
@@ -18,17 +18,29 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl;
+  const inicioParam = searchParams.get("inicio");
+  const fimParam = searchParams.get("fim");
   const dias = Number(searchParams.get("dias") ?? "14");
   const desde = addDaysBR(todayBR(), -Math.abs(dias));
 
-  const ocorrencias = await db
+  let query = db
     .selectFrom("ocorrencias as o")
     .leftJoin("users as u", "u.id", "o.criado_por_id")
     .select(["o.id", "o.data", "o.motivo", "u.nome as criado_por"])
-    .where("o.data", ">=", startOfDayBR(desde).toISOString())
     .orderBy("o.data", "desc")
-    .limit(200)
-    .execute();
+    .limit(500);
+
+  // Relatórios podem pedir um período explícito (inicio/fim) em vez de "dias".
+  if (inicioParam && /^\d{4}-\d{2}-\d{2}$/.test(inicioParam)) {
+    query = query.where("o.data", ">=", startOfDayBR(inicioParam).toISOString());
+  } else {
+    query = query.where("o.data", ">=", startOfDayBR(desde).toISOString());
+  }
+  if (fimParam && /^\d{4}-\d{2}-\d{2}$/.test(fimParam)) {
+    query = query.where("o.data", "<=", endOfDayBR(fimParam).toISOString());
+  }
+
+  const ocorrencias = await query.execute();
 
   return NextResponse.json({ ocorrencias, podeExcluir: canDeleteOcorrencia(session.role) });
 }

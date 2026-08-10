@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import StatusBadge from "@/components/status-badge";
+import CodeSelect from "@/components/code-select";
 import { formatDateBR, diasEmEstoque } from "@/lib/tz";
 import { PADROES, PADRAO_LABELS, STATUS_CONTAINER, STATUS_LABELS, type StatusContainer, type Armador, type Padrao } from "@/lib/types";
 
@@ -182,6 +183,17 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
                   ))}
                 </select>
               </div>
+              <a
+                href={`/api/containers/export?${new URLSearchParams({
+                  ...(selecionado ? { armador: selecionado } : {}),
+                  ...(status ? { status } : {}),
+                  ...(padrao ? { padrao } : {}),
+                  ...(buscaNumero.trim() ? { numero: buscaNumero.trim() } : {}),
+                }).toString()}`}
+                className="btn btn-secondary text-xs px-3 py-1.5"
+              >
+                Exportar Excel
+              </a>
               <span className="text-xs text-[var(--muted)] ml-auto">
                 {loadingDetalhe ? "Carregando..." : `${detalhesFiltrados.length} containers`}
               </span>
@@ -210,36 +222,24 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
                         <td className="px-3 py-2">{c.tipo ?? "—"}</td>
                         <td className="px-3 py-2">
                           {canEdit ? (
-                            <select
-                              className="input py-1 px-2 text-xs w-auto min-w-0"
+                            <CodeSelect
                               value={c.padrao}
                               disabled={savingPadrao === c.numero}
-                              onChange={(e) => salvarPadrao(c.numero, e.target.value)}
-                            >
-                              {PADROES.map((p) => (
-                                <option key={p} value={p}>
-                                  {p} · {PADRAO_LABELS[p]}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(v) => salvarPadrao(c.numero, v)}
+                              options={PADROES.map((p) => ({ value: p, label: PADRAO_LABELS[p] }))}
+                            />
                           ) : (
                             c.padrao
                           )}
                         </td>
                         <td className="px-3 py-2">
                           {canEdit ? (
-                            <select
-                              className="input py-1 px-2 text-xs w-auto min-w-0"
+                            <CodeSelect
                               value={c.status}
                               disabled={savingStatus === c.numero}
-                              onChange={(e) => salvarStatus(c.numero, e.target.value)}
-                            >
-                              {STATUS_CONTAINER.map((s) => (
-                                <option key={s} value={s}>
-                                  {s} · {STATUS_LABELS[s]}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(v) => salvarStatus(c.numero, v)}
+                              options={STATUS_CONTAINER.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+                            />
                           ) : (
                             <StatusBadge status={c.status} />
                           )}

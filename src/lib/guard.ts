@@ -9,6 +9,7 @@ const TAB_HREF: Record<Tab, string> = {
   ocorrencias: "/ocorrencias",
   programacao: "/programacao",
   coletas: "/coletas",
+  relatorios: "/relatorios",
   importacao: "/importacao",
   usuarios: "/usuarios",
 };

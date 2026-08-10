@@ -15,6 +15,7 @@ export type Tab =
   | "ocorrencias"
   | "programacao"
   | "coletas"
+  | "relatorios"
   | "importacao"
   | "usuarios";
 
@@ -25,6 +26,7 @@ export const ALL_TABS: Tab[] = [
   "ocorrencias",
   "programacao",
   "coletas",
+  "relatorios",
   "importacao",
   "usuarios",
 ];
@@ -36,6 +38,7 @@ export const TAB_LABELS: Record<Tab, { label: string; icon: string }> = {
   ocorrencias: { label: "Ocorrências", icon: "⚠️" },
   programacao: { label: "Programação", icon: "🗓️" },
   coletas: { label: "Coletas", icon: "🚚" },
+  relatorios: { label: "Relatórios", icon: "📄" },
   importacao: { label: "Importação", icon: "⬆️" },
   usuarios: { label: "Usuários", icon: "👤" },
 };
@@ -53,6 +56,7 @@ export const TAB_ACCESS: Record<Role, Tab[]> = {
     "ocorrencias",
     "programacao",
     "coletas",
+    "relatorios",
     "importacao",
     "usuarios",
   ],
@@ -63,6 +67,7 @@ export const TAB_ACCESS: Record<Role, Tab[]> = {
     "ocorrencias",
     "programacao",
     "coletas",
+    "relatorios",
   ],
 };
 

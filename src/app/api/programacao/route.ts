@@ -22,10 +22,12 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl;
+  const inicioParam = searchParams.get("inicio");
+  const fimParam = searchParams.get("fim");
   const dias = Number(searchParams.get("dias") ?? "14");
   const desde = addDaysBR(todayBR(), -Math.abs(dias));
 
-  const rows = await db
+  let query = db
     .selectFrom("programacoes as p")
     .leftJoin("coletas as co", "co.programacao_id", "p.id")
     .select([
@@ -38,12 +40,22 @@ export async function GET(req: NextRequest) {
       "p.criado_em",
       (eb) => eb.fn.count<number>("co.id").filterWhere("co.status", "=", "CONCLUIDO").as("realizada"),
     ])
-    .where("p.data_retirada", ">=", desde)
     .groupBy(["p.id"])
     .orderBy("p.data_retirada", "desc")
     .orderBy("p.criado_em", "desc")
-    .limit(200)
-    .execute();
+    .limit(500);
+
+  // Relatórios podem pedir um período explícito (inicio/fim) em vez de "dias".
+  if (inicioParam && /^\d{4}-\d{2}-\d{2}$/.test(inicioParam)) {
+    query = query.where("p.data_retirada", ">=", inicioParam);
+  } else {
+    query = query.where("p.data_retirada", ">=", desde);
+  }
+  if (fimParam && /^\d{4}-\d{2}-\d{2}$/.test(fimParam)) {
+    query = query.where("p.data_retirada", "<=", fimParam);
+  }
+
+  const rows = await query.execute();
 
   // node-postgres parses `date` columns into JS Date objects; normalize to a
   // plain YYYY-MM-DD string so the client never has to guess the shape.

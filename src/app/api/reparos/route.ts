@@ -15,9 +15,14 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const dataParam = searchParams.get("data");
+  const inicioParam = searchParams.get("inicio");
+  const fimParam = searchParams.get("fim");
   const dia = dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam) ? dataParam : todayBR();
-  const inicio = startOfDayBR(dia);
-  const fim = endOfDayBR(dia);
+
+  // Relatórios podem pedir um período (inicio/fim) em vez de um único dia.
+  const inicio =
+    inicioParam && /^\d{4}-\d{2}-\d{2}$/.test(inicioParam) ? startOfDayBR(inicioParam) : startOfDayBR(dia);
+  const fim = fimParam && /^\d{4}-\d{2}-\d{2}$/.test(fimParam) ? endOfDayBR(fimParam) : endOfDayBR(dia);
 
   const rows = await db
     .selectFrom("reparos as r")
