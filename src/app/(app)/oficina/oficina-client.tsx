@@ -375,7 +375,7 @@ export default function OficinaClient({
       <div className="card p-4">
         <h2 className="text-sm font-semibold mb-3">Consultar histórico de reparos</h2>
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto overflow-hidden rounded-xl">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">Data</label>
             <input
               type="date"

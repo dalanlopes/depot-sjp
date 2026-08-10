@@ -17,11 +17,11 @@ export default async function LoginPage() {
             className="mx-auto h-24 w-auto mb-3"
           />
           <h1 className="text-xl font-semibold">Depot SJP</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Versão 1.0</p>
         </div>
         <div className="card p-6">
           <LoginForm />
         </div>
+        <p className="text-center text-xs text-[var(--muted)] mt-4">Versão 1.0.0</p>
       </div>
     </div>
   );

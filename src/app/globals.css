@@ -41,6 +41,17 @@ body {
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
 }
 
+/* iOS Safari pode renderizar o valor do input[type=date] (formato de data
+   por extenso, ex.: "10 de ago. de 2026") mais largo que o container,
+   ignorando width:100%. Trava o tamanho e deixa o texto truncar em vez de
+   estourar a borda do card. */
+input[type="date"].input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
 .btn {
   border-radius: 12px;
   padding: 0.55rem 1.1rem;

@@ -68,7 +68,7 @@ export default function OcorrenciasClient() {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="card p-5 max-w-lg space-y-4">
-        <div>
+        <div className="overflow-hidden rounded-xl">
           <label className="text-sm font-medium block mb-1.5">Data</label>
           <input
             type="date"

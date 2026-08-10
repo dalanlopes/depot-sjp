@@ -352,7 +352,7 @@ export default function ColetasClient() {
       <div>
         <h2 className="text-sm font-semibold mb-3">Relatório de Saídas</h2>
         <div className="card p-4 mb-4 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto overflow-hidden rounded-xl">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">De</label>
             <input
               type="date"
@@ -361,7 +361,7 @@ export default function ColetasClient() {
               onChange={(e) => setFiltroInicio(e.target.value)}
             />
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto overflow-hidden rounded-xl">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">Até</label>
             <input
               type="date"
