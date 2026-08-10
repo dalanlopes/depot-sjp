@@ -42,20 +42,16 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
   const [loadingDetalhe, setLoadingDetalhe] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
 
-  // A lista só mostra hoje e, até 12h depois da virada do dia, o dia anterior
-  // também (pra quem está fechando um turno que passou da meia-noite). Depois
-  // disso o dia anterior some da lista — o histórico completo fica no
-  // Relatórios. Cada dia visível começa aberto, mas pode ser fechado/reaberto
-  // clicando no cabeçalho.
+  // A lista mostra hoje, os próximos 4 dias (programações futuras já
+  // registradas) e, até 12h depois da virada do dia, o dia anterior também
+  // (pra quem está fechando um turno que passou da meia-noite). Depois disso
+  // o dia anterior some da lista — o histórico completo fica no Relatórios.
+  // Todas as datas vêm fechadas por padrão; clique no cabeçalho pra abrir.
   const hoje = todayBR();
   const ontem = addDaysBR(hoje, -1);
   const ontemNaJanela = nowHourBR() < 12;
 
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => {
-    const init = new Set<string>([hoje]);
-    if (ontemNaJanela) init.add(ontem);
-    return init;
-  });
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set());
 
   function toggleDate(data: string) {
     setExpandedDates((prev) => {
@@ -83,7 +79,14 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
   }, [loadRows]);
 
   const porData = useMemo(() => {
-    const datasVisiveis = new Set([hoje, ...(ontemNaJanela ? [ontem] : [])]);
+    const datasVisiveis = new Set([
+      hoje,
+      addDaysBR(hoje, 1),
+      addDaysBR(hoje, 2),
+      addDaysBR(hoje, 3),
+      addDaysBR(hoje, 4),
+      ...(ontemNaJanela ? [ontem] : []),
+    ]);
     const map = new Map<string, ProgramacaoRow[]>();
     for (const r of rows) {
       if (!datasVisiveis.has(r.data_retirada)) continue;
@@ -232,7 +235,7 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
         {loadingRows && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
         {!loadingRows && porData.length === 0 && (
           <div className="card p-10 text-center text-sm text-[var(--muted)]">
-            Nenhuma programação para hoje.
+            Nenhuma programação nos próximos dias.
           </div>
         )}
         <div className="space-y-4">

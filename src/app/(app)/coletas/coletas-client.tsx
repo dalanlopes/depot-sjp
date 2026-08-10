@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { formatDateBR, formatDateTimeBR, todayBR, addDaysBR } from "@/lib/tz";
+import { formatDateBR, formatDateTimeBR, todayBR, addDaysBR, nowHourBR } from "@/lib/tz";
 import { SOLICITANTE_LABELS, type SolicitanteTipo } from "@/lib/types";
 
 interface ColetaRow {
@@ -64,6 +64,23 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [pendMessage, setPendMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+
+  // Mesma regra da aba Programação: mostra hoje, os próximos 4 dias, e o dia
+  // anterior só até 12h depois da virada (turno que passa da meia-noite).
+  // Tudo começa fechado; clique no cabeçalho da data pra abrir.
+  const hoje = todayBR();
+  const ontem = addDaysBR(hoje, -1);
+  const ontemNaJanela = nowHourBR() < 12;
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set());
+
+  function toggleDate(data: string) {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(data)) next.delete(data);
+      else next.add(data);
+      return next;
+    });
+  }
 
   const [rows, setRows] = useState<ColetaRow[]>([]);
   const [excluindoColeta, setExcluindoColeta] = useState<string | null>(null);
@@ -135,14 +152,24 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
         });
     }
 
+    const datasVisiveis = new Set([
+      hoje,
+      addDaysBR(hoje, 1),
+      addDaysBR(hoje, 2),
+      addDaysBR(hoje, 3),
+      addDaysBR(hoje, 4),
+      ...(ontemNaJanela ? [ontem] : []),
+    ]);
+
     const byDate = new Map<string, [string, ProgramacaoGrupo][]>();
     for (const [progId, g] of byProg) {
+      if (!datasVisiveis.has(g.data_retirada)) continue;
       const arr = byDate.get(g.data_retirada);
       if (arr) arr.push([progId, g]);
       else byDate.set(g.data_retirada, [[progId, g]]);
     }
     return Array.from(byDate.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [pendentes]);
+  }, [pendentes, hoje, ontem, ontemNaJanela]);
 
   function getForm(programacaoId: string): FormState {
     return formState[programacaoId] ?? { cm: "", containers: [""] };
@@ -263,15 +290,26 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
         {loadingPendentes && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
         {!loadingPendentes && porData.length === 0 && (
           <div className="card p-10 text-center text-sm text-[var(--muted)]">
-            Nenhuma coleta pendente no momento.
+            Nenhuma coleta pendente nos próximos dias.
           </div>
         )}
         <div className="space-y-4">
-          {porData.map(([data, progGroups]) => (
+          {porData.map(([data, progGroups]) => {
+            const dataAberta = expandedDates.has(data);
+            return (
             <div key={data} className="card overflow-hidden">
-              <div className="px-4 py-3 border-b border-[var(--border)] bg-gray-50">
+              <button
+                type="button"
+                onClick={() => toggleDate(data)}
+                className="w-full px-4 py-3 border-b border-[var(--border)] bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
+              >
                 <span className="text-sm font-semibold">{formatDateBR(`${data}T12:00:00-03:00`)}</span>
-              </div>
+                <span className="text-xs text-[var(--muted)] flex items-center gap-2">
+                  {progGroups.length} pedido{progGroups.length === 1 ? "" : "s"}
+                  <span className={`transition-transform ${dataAberta ? "rotate-180" : ""}`}>▾</span>
+                </span>
+              </button>
+              {dataAberta && (
               <div>
                 {progGroups.map(([programacaoId, g]) => {
                   const form = getForm(programacaoId);
@@ -352,8 +390,10 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
                   );
                 })}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
         {pendMessage && (
           <p className={`text-sm mt-2 ${pendMessage.type === "ok" ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
