@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Depot SJP - Gestão de Containers",
+  title: "Vale do Tibagi - Depot SJP",
   description: "Sistema de Gestão para Depot de Containers - Estoque e Reparos",
 };
 
