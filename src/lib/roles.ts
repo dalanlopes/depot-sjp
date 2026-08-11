@@ -117,7 +117,7 @@ export function canImportData(role: Role): boolean {
 }
 
 export function canRegisterCollection(role: Role): boolean {
-  return role === "GESTOR";
+  return role === "GESTOR" || role === "ANALISTA_PROGRAMACAO";
 }
 
 export function defaultTabFor(session: SessionLike): Tab {

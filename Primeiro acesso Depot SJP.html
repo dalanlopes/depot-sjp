@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Primeiro acesso — Depot SJP</title>
+<style>
+  @page{ size: A4; margin: 0; }
+  :root{
+    --ink:#1b2420;
+    --ink-soft:#4b564f;
+    --paper:#f6f4ee;
+    --paper-raised:#ffffff;
+    --green:#0b5d3c;
+    --green-deep:#083f29;
+    --green-line: rgba(11,93,60,.18);
+    --gold:#b8873a;
+    --rule: rgba(27,36,32,.12);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -200px, rgba(11,93,60,.06), transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    font-family: "Iowan Old Style","Palatino Linotype","Book Antiqua", Georgia, "Times New Roman", serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sans{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+  .wrap{ max-width: 640px; margin: 0 auto; padding: 0 20px 64px; }
+
+  /* ---------- header band ---------- */
+  .band{
+    background: linear-gradient(160deg, var(--green) 0%, var(--green-deep) 100%);
+    color: #eef6f0;
+    padding: 38px 20px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .band-inner{
+    max-width: 640px; margin:0 auto;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+  }
+  .band-inner img{
+    height: 46px; width:auto; display:block;
+  }
+  .brand-name{
+    margin-top: 12px;
+    font-size: 13px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(238,246,240,.85);
+  }
+
+  /* ---------- intro card ---------- */
+  .intro{
+    background: var(--paper-raised);
+    margin-top: -26px;
+    border: 1px solid var(--green-line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .intro b{ color:var(--ink); }
+
+  /* ---------- link pill ---------- */
+  .linkbox{
+    margin-top: 22px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background: #fff;
+    border: 1px solid var(--green-line);
+    border-left: 4px solid var(--green);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .linkbox .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-soft); }
+  .linkbox a{
+    color: var(--green-deep); font-weight:700; text-decoration:none; font-size:16.5px;
+    word-break:break-all;
+  }
+  .linkbox a:hover{ text-decoration:underline; }
+  .copybtn{
+    flex:0 0 auto; border:1px solid var(--green-line); background:var(--paper);
+    color:var(--green-deep); font-size:12px; padding:8px 12px; border-radius:6px; cursor:pointer;
+  }
+  .copybtn:active{ transform: translateY(1px); }
+
+  /* ---------- steps ---------- */
+  .steps{ margin-top: 34px; }
+  .step{
+    position: relative;
+    display:flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 22px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .step:last-child{ border-bottom: 1px solid var(--rule); }
+  .step > div:last-child{ flex: 1; min-width: 0; }
+  .num{
+    flex: 0 0 46px;
+    width: 46px;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: -0.02em;
+    padding-top: 2px;
+  }
+  .step h3{
+    margin: 4px 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .step p{
+    margin: 0 0 8px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .step p:last-child{ margin-bottom:0; }
+
+  /* mock UI fields, to mirror what appears on screen */
+  .mockfield{
+    font-family: inherit;
+  }
+  .mock{
+    background:#fff; border:1px solid var(--rule); border-radius:8px; padding:12px 14px; margin: 10px 0;
+  }
+  .mock .flabel{
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); margin-bottom:5px;
+  }
+  .mock .finput{
+    font-family: "SF Mono","Menlo","Consolas",monospace;
+    font-size: 14px;
+    color: var(--green-deep);
+    background: var(--paper);
+    border:1px dashed var(--green-line);
+    border-radius:5px;
+    padding: 8px 10px;
+    letter-spacing:.04em;
+  }
+  .mock .fhint{ font-size:12px; color: var(--ink-soft); margin-top:5px; opacity:.85; }
+  .btn-preview{
+    display:inline-block; margin-top:4px;
+    background: var(--green); color:#fff; font-size:13px; font-weight:600;
+    padding: 9px 16px; border-radius:6px; letter-spacing:.01em;
+  }
+
+  /* ---------- callout ---------- */
+  .callout{
+    margin-top: 26px;
+    background: #fbf3e6;
+    border: 1px solid rgba(184,135,58,.35);
+    border-radius: 9px;
+    padding: 16px 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #5a4420;
+  }
+  .callout .k{
+    font-size:11px; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color: var(--gold);
+    display:block; margin-bottom:6px;
+  }
+
+  /* ---------- footer ---------- */
+  .foot{
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    display:flex; justify-content:space-between; align-items:flex-end; gap: 16px; flex-wrap:wrap;
+  }
+  .foot .who{ font-size: 13px; color: var(--ink-soft); line-height:1.6; }
+  .foot .who b{ color: var(--ink); }
+
+  @media screen and (max-width:420px){
+    .num{ font-size:28px; flex-basis:38px; width:38px; }
+    .step{ gap:12px; }
+  }
+
+  /* ---------- versão compacta para o PDF (uma página, centralizada) ---------- */
+  @media print{
+    html, body{ margin:0; padding:0; }
+    .pagecenter{ margin-top: 78pt; }
+    .step{ break-inside: avoid; page-break-inside: avoid; }
+    .intro, .linkbox, .callout, .mock{ break-inside: avoid; page-break-inside: avoid; }
+
+    .band{ padding: 22px 20px; }
+    .band-inner img{ height: 34px; }
+    .brand-name{ margin-top: 8px; font-size: 11px; }
+    .intro{ padding: 12px 16px; font-size: 13px; line-height: 1.45; }
+    .linkbox{ margin-top: 14px; padding: 10px 14px; }
+    .linkbox a{ font-size: 15px; }
+    .steps{ margin-top: 16px; }
+    .step{ padding: 10px 0; gap: 12px; }
+    .num{ font-size: 24px; flex-basis: 32px; width: 32px; }
+    .step h3{ font-size: 14.5px; margin: 1px 0 3px; }
+    .step p{ font-size: 12px; line-height: 1.42; margin-bottom: 4px; }
+    .mockrow{ display:flex; gap:10px; }
+    .mockrow .mock{ flex:1; min-width:0; }
+    .mock{ padding: 7px 10px; margin: 6px 0; }
+    .mock .flabel{ font-size: 9px; margin-bottom: 3px; }
+    .mock .finput{ font-size: 11.5px; padding: 5px 8px; }
+    .mock .fhint{ font-size: 9.5px; margin-top: 3px; }
+    .btn-preview{ padding: 6px 12px; font-size: 11px; margin-top: 2px; }
+    .callout{ margin-top: 12px; padding: 10px 14px; font-size: 11.5px; line-height: 1.4; }
+    .callout .k{ font-size: 10px; margin-bottom: 3px; }
+    .foot{ margin-top: 16px; padding-top: 10px; }
+    .foot .who{ font-size: 11px; }
+    .wrap{ padding: 0 20px 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="pagecenter">
+  <div class="band">
+    <div class="band-inner sans">
+      <img src="data:image/png;base64,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" alt="Vale do Tibagi">
+      <div class="brand-name">Depot SJP</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div id="pdfContent">
+
+      <div class="intro sans">
+        Já cadastrou o seu <b>e-mail</b> no sistema? Agora solicite por WhatsApp para o <b>Admin</b> um <b>código de convite</b>. Com esses dois dados em mãos, é só seguir os passos abaixo.
+      </div>
+
+      <div class="linkbox sans">
+        <div>
+          <div class="lbl">Endereço do sistema</div>
+          <a href="https://depot-sjp.vercel.app" target="_blank" rel="noopener">depot-sjp.vercel.app</a>
+        </div>
+        <button class="copybtn" onclick="copyLink(this)">Copiar link</button>
+      </div>
+
+      <div class="steps sans">
+
+        <div class="step">
+          <div class="num">1</div>
+          <div>
+            <h3>Abra o link no navegador do celular</h3>
+            <p>Toque no endereço acima (ou digite <b>depot-sjp.vercel.app</b> no Chrome/Safari). Dica: depois de entrar, você pode adicionar a página à tela inicial do celular para acessar como se fosse um aplicativo.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">2</div>
+          <div>
+            <h3>Digite seu e-mail cadastrado</h3>
+            <p>Na tela inicial, informe o mesmo e-mail que você cadastrou e toque em continuar.</p>
+            <div class="mock">
+              <div class="flabel">E-mail</div>
+              <div class="finput">seunome@empresa.com.br</div>
+            </div>
+            <span class="btn-preview">Continuar</span>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">3</div>
+          <div>
+            <h3>Informe o código de convite e crie sua senha</h3>
+            <p>O sistema reconhece que é seu primeiro acesso e pede três informações: o código que o Admin te passou, e a senha que você quer usar daqui pra frente (mínimo 8 caracteres).</p>
+            <div class="mock">
+              <div class="flabel">Código de convite</div>
+              <div class="finput">Ex: K3F9QX2A</div>
+            </div>
+            <div class="mockrow">
+              <div class="mock">
+                <div class="flabel">Nova senha</div>
+                <div class="finput">••••••••</div>
+                <div class="fhint">mínimo 8 caracteres</div>
+              </div>
+              <div class="mock">
+                <div class="flabel">Confirmar senha</div>
+                <div class="finput">••••••••</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">4</div>
+          <div>
+            <h3>Toque em "Criar senha e entrar"</h3>
+            <p>Pronto — você já cai direto no sistema, na tela do seu perfil. Nas próximas vezes, é só repetir o passo 2 com e-mail e a senha que você acabou de criar.</p>
+            <span class="btn-preview">Criar senha e entrar</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="callout sans">
+        <span class="k">Atenção</span>
+        O código de convite vale por <b>7 dias</b> e funciona <b>uma única vez</b>. Se demorar para usar e ele expirar, é só pedir para o admin gerar um novo. É sem custo, e rapidinho!
+      </div>
+
+      <div class="foot sans">
+        <div class="who">Dúvidas no acesso?<br><b>Fale com Admin</b> pelo WhatsApp.</div>
+        <div class="who" style="text-align:right;">Vale do Tibagi<br>Depot SJP</div>
+      </div>
+
+    </div>
+
+  </div>
+  </div>
+
+  <script>
+    function copyLink(btn){
+      navigator.clipboard.writeText("https://depot-sjp.vercel.app").then(()=>{
+        const old = btn.textContent;
+        btn.textContent = "Copiado!";
+        setTimeout(()=>{ btn.textContent = old; }, 1600);
+      });
+    }
+  </script>
+
+</body>
+</html>
