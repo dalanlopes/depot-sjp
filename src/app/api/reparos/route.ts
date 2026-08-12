@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
       "r.container_numero",
       "r.dm",
       "r.por_conta_depot",
+      "r.upgrade",
       "c.armador",
       "c.padrao",
       "r.valor_faturado",
@@ -71,6 +72,7 @@ const schema = z.object({
         numero: z.string().min(4).max(20),
         dm: z.enum(DM_OPCOES as [string, ...string[]]).optional(),
         porContaDepot: z.boolean().optional(),
+        upgrade: z.boolean().optional(),
       })
     )
     .min(1),
@@ -95,6 +97,7 @@ export async function POST(req: NextRequest) {
       numero: i.numero.trim().toUpperCase(),
       dm: i.dm as (typeof DM_OPCOES)[number] | undefined,
       porContaDepot: i.porContaDepot ?? false,
+      upgrade: i.upgrade ?? false,
     }))
     .filter((i) => (seen.has(i.numero) ? false : (seen.add(i.numero), true)));
 
@@ -120,6 +123,7 @@ export async function POST(req: NextRequest) {
           container_numero: item.numero,
           dm: item.dm ?? null,
           por_conta_depot: item.porContaDepot,
+          upgrade: item.upgrade,
           status_anterior: container.status,
         })
         .execute();

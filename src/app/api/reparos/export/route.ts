@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       "c.padrao",
       "r.dm",
       "r.por_conta_depot",
+      "r.upgrade",
       "r.valor_faturado",
     ])
     .where("r.data", ">=", inicio.toISOString())
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
     { header: "Armador", key: "armador", width: 12 },
     { header: "Padrão", key: "padrao", width: 8 },
     { header: "DM", key: "dm", width: 8 },
+    { header: "Upgrade", key: "upgrade", width: 10 },
   ];
   if (showFinance) {
     columns.push(
@@ -65,6 +67,7 @@ export async function GET(req: NextRequest) {
       armador: r.armador,
       padrao: r.padrao,
       dm: r.dm ?? "",
+      upgrade: r.upgrade ? "Sim" : "Não",
       ...(showFinance
         ? {
             depot: r.por_conta_depot ? "Sim" : "Não",

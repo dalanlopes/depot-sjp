@@ -34,13 +34,15 @@ CREATE TABLE solicitacoes_acesso (
 
 -- Tabela mestre: fonte única de verdade para o status de cada container
 CREATE TABLE containers (
-  numero        TEXT PRIMARY KEY,
-  armador       armador NOT NULL,
-  padrao        padrao NOT NULL,
-  status        status_container NOT NULL DEFAULT 'WS',
-  entrada       TIMESTAMPTZ,
-  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+  numero         TEXT PRIMARY KEY,
+  armador        armador NOT NULL,
+  padrao         padrao NOT NULL,
+  status         status_container NOT NULL DEFAULT 'WS',
+  entrada        TIMESTAMPTZ,
+  tipo           TEXT,
+  valor_estimado TEXT,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_containers_status ON containers(status);
@@ -56,6 +58,7 @@ CREATE TABLE reparos (
   faturado_em      TIMESTAMPTZ,
   dm               dm_opcao, -- DM1..DM4: time/posto que fez o reparo
   por_conta_depot  BOOLEAN NOT NULL DEFAULT false, -- reparo feito mas nao cobrado do armador
+  upgrade          BOOLEAN NOT NULL DEFAULT false, -- foi feito upgrade no container
   status_anterior  status_container -- status do container antes do reparo; usado para restaurar ao excluir
 );
 
@@ -119,3 +122,49 @@ CREATE TABLE coletas (
 
 CREATE INDEX idx_coletas_data ON coletas(data);
 CREATE INDEX idx_coletas_programacao ON coletas(programacao_id);
+
+-- Saídas registradas a partir da planilha do sistema do terminal (fora do
+-- fluxo de Coletas/CM). Sem FK para containers de propósito: a planilha pode
+-- referenciar containers que não passaram pela nossa Importação. Um container
+-- que já tem coleta CONCLUIDO (saiu via CM) é ignorado na importação dessa
+-- planilha, pra não contar a mesma saída duas vezes.
+CREATE TABLE saidas_externas (
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  container_numero  TEXT NOT NULL,
+  tipo              TEXT,
+  entrada           TIMESTAMPTZ,
+  data_saida        TIMESTAMPTZ NOT NULL,
+  tara              NUMERIC(12,2),
+  mgw               NUMERIC(12,2),
+  booking           TEXT,
+  dias_planilha     INTEGER,
+  car               TEXT,
+  exportador        TEXT,
+  navio             TEXT,
+  vg                TEXT,
+  lacre_exp         TEXT,
+  lacre_p           TEXT,
+  lacre_v           TEXT,
+  criado_por_id     TEXT REFERENCES users(id),
+  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (container_numero)
+);
+
+CREATE INDEX idx_saidas_externas_data ON saidas_externas(data_saida);
+CREATE INDEX idx_saidas_externas_container ON saidas_externas(container_numero);
+
+-- Row Level Security: a aplicação conecta como dono das tabelas (role
+-- "postgres" em produção, "app_teste" no banco de teste) e por isso ignora
+-- o RLS normalmente. Habilitar aqui, sem nenhuma policy, bloqueia por
+-- completo o acesso via API pública do Supabase (PostgREST/anon key), que
+-- fica exposta por padrão em qualquer schema "public" mesmo sem uso.
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE containers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reparos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ocorrencias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE programacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coletas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saidas_externas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE solicitacoes_acesso ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;

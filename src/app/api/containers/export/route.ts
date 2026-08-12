@@ -31,6 +31,13 @@ export async function GET(req: NextRequest) {
         )
       )
     )
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom("saidas_externas as se").select("se.id").whereRef("se.container_numero", "=", "c.numero")
+        )
+      )
+    )
     .select((eb) => [
       "c.numero",
       "c.armador",

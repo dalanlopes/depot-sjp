@@ -23,12 +23,33 @@ interface ImportResult {
   errors: { linha: number; motivo: string }[];
 }
 
+interface ImportSaidaResult {
+  total: number;
+  criados: number;
+  atualizados: number;
+  semAlteracao: number;
+  jaSaiuPorCM: string[];
+  errors: { linha: number; motivo: string }[];
+}
+
+type Aba = "entrada" | "saida";
+
 export default function ImportacaoClient() {
+  const [aba, setAba] = useState<Aba>("entrada");
+
+  // Entrada — upload
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Saída — upload
+  const [dragOverSaida, setDragOverSaida] = useState(false);
+  const [uploadingSaida, setUploadingSaida] = useState(false);
+  const [resultSaida, setResultSaida] = useState<ImportSaidaResult | null>(null);
+  const [errorSaida, setErrorSaida] = useState<string | null>(null);
+
+  // Entrada — manual
   const [manualOpen, setManualOpen] = useState(false);
   const [numero, setNumero] = useState("");
   const [armador, setArmador] = useState<Armador>(ARMADORES[0]);
@@ -39,6 +60,17 @@ export default function ImportacaoClient() {
   const [estimativa, setEstimativa] = useState("");
   const [savingManual, setSavingManual] = useState(false);
   const [manualMsg, setManualMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // Saída — manual
+  const [manualSaidaOpen, setManualSaidaOpen] = useState(false);
+  const [numeroSaida, setNumeroSaida] = useState("");
+  const [dataSaida, setDataSaida] = useState(() => todayBR());
+  const [tipoSaida, setTipoSaida] = useState("");
+  const [booking, setBooking] = useState("");
+  const [exportador, setExportador] = useState("");
+  const [navio, setNavio] = useState("");
+  const [savingManualSaida, setSavingManualSaida] = useState(false);
+  const [manualSaidaMsg, setManualSaidaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   async function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,6 +107,41 @@ export default function ImportacaoClient() {
     }
   }
 
+  async function handleManualSaidaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingManualSaida(true);
+    setManualSaidaMsg(null);
+    try {
+      const res = await fetch("/api/containers/saida-externa/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          numero: numeroSaida,
+          dataSaida,
+          tipo: tipoSaida.trim() || undefined,
+          booking: booking.trim() || undefined,
+          exportador: exportador.trim() || undefined,
+          navio: navio.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setManualSaidaMsg({ type: "ok", text: `Saída do container ${data.numero} registrada.` });
+        setNumeroSaida("");
+        setTipoSaida("");
+        setBooking("");
+        setExportador("");
+        setNavio("");
+      } else {
+        setManualSaidaMsg({ type: "error", text: data.error ?? "Erro ao registrar a saída." });
+      }
+    } catch {
+      setManualSaidaMsg({ type: "error", text: "Erro ao conectar. Tente novamente." });
+    } finally {
+      setSavingManualSaida(false);
+    }
+  }
+
   const handleFile = useCallback(async (file: File) => {
     setUploading(true);
     setError(null);
@@ -96,168 +163,399 @@ export default function ImportacaoClient() {
     }
   }, []);
 
+  const handleFileSaida = useCallback(async (file: File) => {
+    setUploadingSaida(true);
+    setErrorSaida(null);
+    setResultSaida(null);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("/api/containers/saida-externa/import", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorSaida(data.error ?? "Erro ao importar.");
+      } else {
+        setResultSaida(data);
+      }
+    } catch {
+      setErrorSaida("Erro ao enviar o arquivo.");
+    } finally {
+      setUploadingSaida(false);
+    }
+  }, []);
+
   return (
     <div className="space-y-5 max-w-2xl">
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file) handleFile(file);
-        }}
-        className={`card flex flex-col items-center justify-center gap-2 py-14 cursor-pointer border-2 border-dashed transition-colors ${
-          dragOver ? "border-[var(--primary)] bg-indigo-50" : "border-[var(--border)]"
-        }`}
-      >
-        <span className="text-3xl">⬆️</span>
-        <span className="text-sm font-medium">
-          {uploading ? "Enviando..." : "Arraste sua planilha aqui ou clique para selecionar"}
-        </span>
-        <span className="text-xs text-[var(--muted)]">Formatos aceitos: .csv, .xlsx, .xls</span>
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-          }}
-        />
-      </label>
+      <div className="flex gap-2 border-b border-[var(--border)]">
+        <button
+          type="button"
+          onClick={() => setAba("entrada")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            aba === "entrada"
+              ? "border-[var(--primary)] text-[var(--primary)]"
+              : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
+          }`}
+        >
+          Entrada
+        </button>
+        <button
+          type="button"
+          onClick={() => setAba("saida")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            aba === "saida"
+              ? "border-[var(--primary)] text-[var(--primary)]"
+              : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
+          }`}
+        >
+          Saída
+        </button>
+      </div>
 
-      {error && (
-        <div className="card p-4 text-sm text-[var(--danger)] bg-red-50 border-red-100">{error}</div>
-      )}
-
-      {result && (
-        <div className="card p-4 space-y-3">
-          <p className="text-sm font-medium">
-            {result.imported} de {result.total} linhas processadas com sucesso.
-          </p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="badge bg-green-100 text-green-700">{result.criados} novos</span>
-            <span className="badge bg-indigo-100 text-indigo-700">{result.atualizados} atualizados</span>
-            <span className="badge bg-gray-100 text-gray-700">{result.semAlteracao} sem alteração</span>
+      {aba === "entrada" && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold mb-1">Entrada de containers</h2>
+            <p className="text-xs text-[var(--muted)] mb-3">
+              Cadastra ou atualiza containers em massa. Colunas esperadas: <code>Container</code>, <code>Tipo</code>,{" "}
+              <code>Armador</code>, <code>Entrada</code>, <code>Status</code>, <code>Estimativa</code>,{" "}
+              <code>Carga</code>.
+            </p>
           </div>
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleFile(file);
+            }}
+            className={`card flex flex-col items-center justify-center gap-2 py-14 cursor-pointer border-2 border-dashed transition-colors ${
+              dragOver ? "border-[var(--primary)] bg-indigo-50" : "border-[var(--border)]"
+            }`}
+          >
+            <span className="text-3xl">⬆️</span>
+            <span className="text-sm font-medium">
+              {uploading ? "Enviando..." : "Arraste sua planilha aqui ou clique para selecionar"}
+            </span>
+            <span className="text-xs text-[var(--muted)]">Formatos aceitos: .csv, .xlsx, .xls</span>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+              }}
+            />
+          </label>
 
-          {result.mudancasStatus.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-[var(--foreground)] mb-1">
-                Mudanças de status ({result.mudancasStatus.length})
+          {error && (
+            <div className="card p-4 text-sm text-[var(--danger)] bg-red-50 border-red-100">{error}</div>
+          )}
+
+          {result && (
+            <div className="card p-4 space-y-3">
+              <p className="text-sm font-medium">
+                {result.imported} de {result.total} linhas processadas com sucesso.
               </p>
-              <div className="text-xs text-[var(--muted)] space-y-1 max-h-48 overflow-auto border border-[var(--border)] rounded-lg p-2">
-                {result.mudancasStatus.map((m, i) => (
-                  <div key={i}>
-                    <strong className="text-[var(--foreground)]">{m.numero}</strong>: {m.de} → {m.para}
-                  </div>
-                ))}
+              {result.total > 0 && result.criados === 0 && result.atualizados === 0 && result.semAlteracao > 0 && (
+                <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  ⚠️ Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
+                  {result.semAlteracao} linha(s) já estavam iguais no sistema.
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="badge bg-green-100 text-green-700">{result.criados} novos</span>
+                <span className="badge bg-indigo-100 text-indigo-700">{result.atualizados} atualizados</span>
+                <span className="badge bg-gray-100 text-gray-700">{result.semAlteracao} sem alteração</span>
               </div>
+
+              {result.mudancasStatus.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-[var(--foreground)] mb-1">
+                    Mudanças de status ({result.mudancasStatus.length})
+                  </p>
+                  <div className="text-xs text-[var(--muted)] space-y-1 max-h-48 overflow-auto border border-[var(--border)] rounded-lg p-2">
+                    {result.mudancasStatus.map((m, i) => (
+                      <div key={i}>
+                        <strong className="text-[var(--foreground)]">{m.numero}</strong>: {m.de} → {m.para}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.errors.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-[var(--danger)] mb-1">Erros ({result.errors.length})</p>
+                  <div className="text-xs text-[var(--muted)] space-y-1 max-h-48 overflow-auto">
+                    {result.errors.map((e, i) => (
+                      <div key={i}>
+                        Linha {e.linha}: {e.motivo}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {result.errors.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-[var(--danger)] mb-1">Erros ({result.errors.length})</p>
-              <div className="text-xs text-[var(--muted)] space-y-1 max-h-48 overflow-auto">
-                {result.errors.map((e, i) => (
-                  <div key={i}>
-                    Linha {e.linha}: {e.motivo}
+          <div className="card p-4">
+            <button
+              type="button"
+              onClick={() => setManualOpen((o) => !o)}
+              className="text-sm font-medium flex items-center justify-between w-full"
+            >
+              <span>Inserir container manualmente (sem planilha)</span>
+              <span className="text-[var(--muted)]">{manualOpen ? "▲" : "▼"}</span>
+            </button>
+
+            {manualOpen && (
+              <form onSubmit={handleManualSubmit} className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Número do container</label>
+                    <input
+                      className="input uppercase"
+                      value={numero}
+                      onChange={(e) => setNumero(e.target.value.toUpperCase())}
+                      placeholder="Ex: CAAU7936686"
+                      required
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Armador</label>
+                    <select className="input" value={armador} onChange={(e) => setArmador(e.target.value as Armador)}>
+                      {ARMADORES.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Padrão</label>
+                    <select className="input" value={padrao} onChange={(e) => setPadrao(e.target.value as Padrao)}>
+                      {PADROES.map((p) => (
+                        <option key={p} value={p}>{p} · {PADRAO_LABELS[p]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Status</label>
+                    <select className="input" value={status} onChange={(e) => setStatus(e.target.value as StatusContainer)}>
+                      {STATUS_CONTAINER.map((s) => (
+                        <option key={s} value={s}>{s} · {STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Tipo (opcional)</label>
+                    <input className="input" value={tipo} onChange={(e) => setTipo(e.target.value)} placeholder="Ex: 40HC" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="overflow-hidden rounded-xl">
+                    <label className="text-sm font-medium block mb-1.5">Data de entrada</label>
+                    <input type="date" className="input" value={entrada} onChange={(e) => setEntrada(e.target.value)} required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Estimativa de reparo (opcional)</label>
+                    <input
+                      className="input"
+                      placeholder="0,00"
+                      value={estimativa}
+                      onChange={(e) => setEstimativa(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={savingManual} className="btn btn-primary disabled:opacity-60">
+                  {savingManual ? "Salvando..." : "Cadastrar container"}
+                </button>
+                {manualMsg && (
+                  <p className={`text-sm ${manualMsg.type === "ok" ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
+                    {manualMsg.text}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="card p-4">
-        <button
-          type="button"
-          onClick={() => setManualOpen((o) => !o)}
-          className="text-sm font-medium flex items-center justify-between w-full"
-        >
-          <span>Inserir container manualmente (sem planilha)</span>
-          <span className="text-[var(--muted)]">{manualOpen ? "▲" : "▼"}</span>
-        </button>
+      {aba === "saida" && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold mb-1">Saída de containers (planilha externa)</h2>
+            <p className="text-xs text-[var(--muted)] mb-3">
+              Planilha do sistema do terminal com as saídas. Containers que já saíram via CM (aba Coletas) são
+              ignorados automaticamente, pra não contar a mesma saída duas vezes.
+            </p>
+          </div>
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverSaida(true);
+            }}
+            onDragLeave={() => setDragOverSaida(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverSaida(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleFileSaida(file);
+            }}
+            className={`card flex flex-col items-center justify-center gap-2 py-14 cursor-pointer border-2 border-dashed transition-colors ${
+              dragOverSaida ? "border-[var(--primary)] bg-indigo-50" : "border-[var(--border)]"
+            }`}
+          >
+            <span className="text-3xl">⬇️</span>
+            <span className="text-sm font-medium">
+              {uploadingSaida ? "Enviando..." : "Arraste a planilha de saída aqui ou clique para selecionar"}
+            </span>
+            <span className="text-xs text-[var(--muted)]">Formatos aceitos: .csv, .xlsx, .xls</span>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSaida(file);
+              }}
+            />
+          </label>
 
-        {manualOpen && (
-          <form onSubmit={handleManualSubmit} className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Número do container</label>
-                <input
-                  className="input uppercase"
-                  value={numero}
-                  onChange={(e) => setNumero(e.target.value.toUpperCase())}
-                  placeholder="Ex: CAAU7936686"
-                  required
-                />
+          {errorSaida && (
+            <div className="card p-4 text-sm text-[var(--danger)] bg-red-50 border-red-100">{errorSaida}</div>
+          )}
+
+          {resultSaida && (
+            <div className="card p-4 space-y-3">
+              <p className="text-sm font-medium">{resultSaida.total} linha(s) lida(s) na planilha.</p>
+              {resultSaida.total > 0 &&
+                resultSaida.criados === 0 &&
+                resultSaida.atualizados === 0 &&
+                resultSaida.semAlteracao > 0 && (
+                  <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    ⚠️ Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
+                    {resultSaida.semAlteracao} saída(s) já estavam iguais no sistema.
+                  </div>
+                )}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="badge bg-green-100 text-green-700">{resultSaida.criados} novas saídas</span>
+                <span className="badge bg-indigo-100 text-indigo-700">{resultSaida.atualizados} atualizadas</span>
+                <span className="badge bg-gray-100 text-gray-700">{resultSaida.semAlteracao} sem alteração</span>
+                <span className="badge bg-gray-100 text-gray-700">
+                  {resultSaida.jaSaiuPorCM.length} já saíram via CM (ignoradas)
+                </span>
               </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Armador</label>
-                <select className="input" value={armador} onChange={(e) => setArmador(e.target.value as Armador)}>
-                  {ARMADORES.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
+
+              {resultSaida.jaSaiuPorCM.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-[var(--foreground)] mb-1">
+                    Já saíram via CM, não recontadas ({resultSaida.jaSaiuPorCM.length})
+                  </p>
+                  <div className="text-xs text-[var(--muted)] max-h-32 overflow-auto border border-[var(--border)] rounded-lg p-2">
+                    {resultSaida.jaSaiuPorCM.join(", ")}
+                  </div>
+                </div>
+              )}
+
+              {resultSaida.errors.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-[var(--danger)] mb-1">Erros ({resultSaida.errors.length})</p>
+                  <div className="text-xs text-[var(--muted)] space-y-1 max-h-48 overflow-auto">
+                    {resultSaida.errors.map((e, i) => (
+                      <div key={i}>
+                        Linha {e.linha}: {e.motivo}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Padrão</label>
-                <select className="input" value={padrao} onChange={(e) => setPadrao(e.target.value as Padrao)}>
-                  {PADROES.map((p) => (
-                    <option key={p} value={p}>{p} · {PADRAO_LABELS[p]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Status</label>
-                <select className="input" value={status} onChange={(e) => setStatus(e.target.value as StatusContainer)}>
-                  {STATUS_CONTAINER.map((s) => (
-                    <option key={s} value={s}>{s} · {STATUS_LABELS[s]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Tipo (opcional)</label>
-                <input className="input" value={tipo} onChange={(e) => setTipo(e.target.value)} placeholder="Ex: 40HC" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="overflow-hidden rounded-xl">
-                <label className="text-sm font-medium block mb-1.5">Data de entrada</label>
-                <input type="date" className="input" value={entrada} onChange={(e) => setEntrada(e.target.value)} required />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Estimativa de reparo (opcional)</label>
-                <input
-                  className="input"
-                  placeholder="0,00"
-                  value={estimativa}
-                  onChange={(e) => setEstimativa(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button type="submit" disabled={savingManual} className="btn btn-primary disabled:opacity-60">
-              {savingManual ? "Salvando..." : "Cadastrar container"}
+          <div className="card p-4">
+            <button
+              type="button"
+              onClick={() => setManualSaidaOpen((o) => !o)}
+              className="text-sm font-medium flex items-center justify-between w-full"
+            >
+              <span>Registrar saída manualmente (sem planilha)</span>
+              <span className="text-[var(--muted)]">{manualSaidaOpen ? "▲" : "▼"}</span>
             </button>
-            {manualMsg && (
-              <p className={`text-sm ${manualMsg.type === "ok" ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
-                {manualMsg.text}
-              </p>
+
+            {manualSaidaOpen && (
+              <form onSubmit={handleManualSaidaSubmit} className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Número do container</label>
+                    <input
+                      className="input uppercase"
+                      value={numeroSaida}
+                      onChange={(e) => setNumeroSaida(e.target.value.toUpperCase())}
+                      placeholder="Ex: CAAU7936686"
+                      required
+                    />
+                  </div>
+                  <div className="overflow-hidden rounded-xl">
+                    <label className="text-sm font-medium block mb-1.5">Data da saída</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={dataSaida}
+                      onChange={(e) => setDataSaida(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Tipo (opcional)</label>
+                    <input className="input" value={tipoSaida} onChange={(e) => setTipoSaida(e.target.value)} placeholder="Ex: 40HC" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Booking (opcional)</label>
+                    <input className="input" value={booking} onChange={(e) => setBooking(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Exportador (opcional)</label>
+                    <input className="input" value={exportador} onChange={(e) => setExportador(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5">Navio (opcional)</label>
+                    <input className="input" value={navio} onChange={(e) => setNavio(e.target.value)} />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={savingManualSaida} className="btn btn-primary disabled:opacity-60">
+                  {savingManualSaida ? "Salvando..." : "Registrar saída"}
+                </button>
+                {manualSaidaMsg && (
+                  <p
+                    className={`text-sm ${
+                      manualSaidaMsg.type === "ok" ? "text-[var(--success)]" : "text-[var(--danger)]"
+                    }`}
+                  >
+                    {manualSaidaMsg.text}
+                  </p>
+                )}
+              </form>
             )}
-          </form>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

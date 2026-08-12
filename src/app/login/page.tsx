@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { APP_VERSION } from "@/lib/version";
 import LoginForm from "./login-form";
 
 export default async function LoginPage() {
@@ -21,7 +22,7 @@ export default async function LoginPage() {
         <div className="card p-6">
           <LoginForm />
         </div>
-        <p className="text-center text-xs text-[var(--muted)] mt-4">Versão 1.0.0</p>
+        <p className="text-center text-xs text-[var(--muted)] mt-4">Versão {APP_VERSION}</p>
       </div>
     </div>
   );

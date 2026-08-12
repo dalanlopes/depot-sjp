@@ -24,6 +24,7 @@ interface ReparoRow {
   padrao: string;
   dm: Dm | null;
   por_conta_depot: boolean;
+  upgrade: boolean;
   valor_faturado?: string | null;
   faturado_em?: string | null;
 }
@@ -72,9 +73,8 @@ export default function OficinaClient({
 
   const [numero, setNumero] = useState("");
   const [dm, setDm] = useState<Dm>("DM1");
-  const [checking, setChecking] = useState(false);
-  const [pending, setPending] = useState<{ numero: string; dm: Dm }[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+  const [upgrade, setUpgrade] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, string>>({});
@@ -141,56 +141,41 @@ export default function OficinaClient({
     setDiaSelecionadoLoading(false);
   }
 
-  async function addPending() {
+  async function registrar() {
     const n = numero.trim().toUpperCase();
     setAddError(null);
+    setMessage(null);
     if (!n) return;
-    if (pending.some((p) => p.numero === n)) {
-      setAddError("Esse container já está na lista.");
-      return;
-    }
-    setChecking(true);
+    setRegistering(true);
     try {
-      const res = await fetch(`/api/containers/check?numero=${encodeURIComponent(n)}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setAddError(data.error ?? "Erro ao consultar o estoque.");
+      const checkRes = await fetch(`/api/containers/check?numero=${encodeURIComponent(n)}`);
+      const checkData = await checkRes.json();
+      if (!checkRes.ok) {
+        setAddError(checkData.error ?? "Erro ao consultar o estoque.");
         return;
       }
-      if (!data.existe) {
+      if (!checkData.existe) {
         setAddError("Container não encontrado no estoque.");
         return;
       }
-      setPending((prev) => [...prev, { numero: n, dm }]);
+      const res = await fetch("/api/reparos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itens: [{ numero: n, dm, upgrade }] }),
+      });
+      const data = await res.json();
+      if (data.failed?.length) {
+        setAddError(data.failed[0]?.motivo ?? "Não foi possível registrar o container.");
+        return;
+      }
+      setMessage(`${n} registrado como OK${upgrade ? " (com upgrade)" : ""}.`);
       setNumero("");
+      setUpgrade(false);
+      load();
+      loadSummary();
     } finally {
-      setChecking(false);
+      setRegistering(false);
     }
-  }
-
-  async function submitAll() {
-    if (pending.length === 0) return;
-    setSubmitting(true);
-    setMessage(null);
-    const res = await fetch("/api/reparos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itens: pending }),
-    });
-    const data = await res.json();
-    setSubmitting(false);
-    setPending([]);
-    if (data.failed?.length) {
-      setMessage(
-        `${data.created.length} registrado(s). Falhas: ${data.failed
-          .map((f: { numero: string; motivo: string }) => `${f.numero} (${f.motivo})`)
-          .join(", ")}`
-      );
-    } else {
-      setMessage(`${data.created.length} container(s) marcados como OK.`);
-    }
-    load();
-    loadSummary();
   }
 
   async function saveValor(id: string) {
@@ -351,40 +336,22 @@ export default function OficinaClient({
               placeholder="Número do container"
               value={numero}
               onChange={(e) => setNumero(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPending())}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), registrar())}
             />
             <select className="input max-w-[110px]" value={dm} onChange={(e) => setDm(e.target.value as Dm)}>
               {DM_OPCOES.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
-            <button className="btn btn-secondary disabled:opacity-50" onClick={addPending} type="button" disabled={checking}>
-              {checking ? "Verificando..." : "Adicionar"}
-            </button>
-            <button
-              className="btn btn-primary disabled:opacity-50"
-              onClick={submitAll}
-              disabled={pending.length === 0 || submitting}
-            >
-              {submitting ? "Salvando..." : `Salvar (${pending.length})`}
+            <label className="flex items-center gap-1.5 text-sm text-[var(--muted)] select-none">
+              <input type="checkbox" checked={upgrade} onChange={(e) => setUpgrade(e.target.checked)} />
+              Upgrade
+            </label>
+            <button className="btn btn-primary disabled:opacity-50" onClick={registrar} type="button" disabled={registering}>
+              {registering ? "Registrando..." : "Adicionar"}
             </button>
           </div>
           {addError && <p className="text-sm text-[var(--danger)] mt-2">{addError}</p>}
-          {pending.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {pending.map((p) => (
-                <span key={p.numero} className="badge bg-indigo-50 text-indigo-700">
-                  {p.numero} · {p.dm}
-                  <button
-                    onClick={() => setPending(pending.filter((x) => x.numero !== p.numero))}
-                    className="ml-1"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
           {message && (
             <p className="text-sm text-[var(--muted)] mt-3">{message}</p>
           )}
@@ -445,6 +412,9 @@ export default function OficinaClient({
                         {r.container_numero}
                         {r.por_conta_depot && (
                           <span className="ml-1.5 badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
+                        )}
+                        {r.upgrade && (
+                          <span className="ml-1.5 badge bg-blue-100 text-blue-700 text-[10px]">Upgrade</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-[var(--muted)]">{r.dm ?? "—"}</td>

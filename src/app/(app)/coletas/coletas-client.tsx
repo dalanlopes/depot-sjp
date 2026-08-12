@@ -14,6 +14,19 @@ interface ColetaRow {
   cliente: string | null;
 }
 
+interface SaidaExternaRow {
+  id: string;
+  container_numero: string;
+  armador: string | null;
+  padrao: string | null;
+  tipo: string | null;
+  data_saida: string;
+  booking: string | null;
+  exportador: string | null;
+  navio: string | null;
+  vg: string | null;
+}
+
 interface PendenteRow {
   id: string;
   programacao_id: string;
@@ -51,11 +64,13 @@ function todayStr() {
   return todayBR();
 }
 
-function daysAgoStr(n: number) {
-  return addDaysBR(todayBR(), -n);
-}
-
-export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?: boolean }) {
+export default function ColetasClient({
+  podeConfirmar = true,
+  podeExcluirSaidaExterna = false,
+}: {
+  podeConfirmar?: boolean;
+  podeExcluirSaidaExterna?: boolean;
+}) {
   const [summary, setSummary] = useState<Summary | null>(null);
 
   const [pendentes, setPendentes] = useState<PendenteRow[]>([]);
@@ -82,11 +97,17 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
     });
   }
 
-  const [rows, setRows] = useState<ColetaRow[]>([]);
+  const [rows, setRows] = useState<ColetaRow[] | null>(null);
   const [excluindoColeta, setExcluindoColeta] = useState<string | null>(null);
-  const [loadingReport, setLoadingReport] = useState(true);
-  const [filtroInicio, setFiltroInicio] = useState(daysAgoStr(29));
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [filtroInicio, setFiltroInicio] = useState(todayStr());
   const [filtroFim, setFiltroFim] = useState(todayStr());
+
+  const [rowsExternas, setRowsExternas] = useState<SaidaExternaRow[] | null>(null);
+  const [excluindoExterna, setExcluindoExterna] = useState<string | null>(null);
+  const [loadingExternas, setLoadingExternas] = useState(false);
+  const [filtroInicioExt, setFiltroInicioExt] = useState(todayStr());
+  const [filtroFimExt, setFiltroFimExt] = useState(todayStr());
 
   const loadSummary = useCallback(async () => {
     const res = await fetch("/api/coletas/summary");
@@ -114,6 +135,17 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
     setLoadingReport(false);
   }, [filtroInicio, filtroFim]);
 
+  const loadExternas = useCallback(async () => {
+    setLoadingExternas(true);
+    const params = new URLSearchParams({ inicio: filtroInicioExt, fim: filtroFimExt });
+    const res = await fetch(`/api/containers/saida-externa?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      setRowsExternas(data.saidas ?? []);
+    }
+    setLoadingExternas(false);
+  }, [filtroInicioExt, filtroFimExt]);
+
   useEffect(() => {
     loadSummary();
     loadPendentes();
@@ -124,16 +156,23 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
     return () => clearInterval(interval);
   }, [loadSummary, loadPendentes]);
 
-  useEffect(() => {
-    loadReport();
-    const interval = setInterval(loadReport, 60000);
-    return () => clearInterval(interval);
-  }, [loadReport]);
-
+  // Os relatórios abaixo só carregam quando o usuário clica em "Pesquisar" —
+  // não buscam nada sozinhos ao abrir a página.
   function refreshAll() {
     loadSummary();
     loadPendentes();
-    loadReport();
+    if (rows !== null) loadReport();
+    if (rowsExternas !== null) loadExternas();
+  }
+
+  async function excluirSaidaExterna(r: SaidaExternaRow) {
+    if (!confirm(`Excluir a saída externa do container ${r.container_numero}?`)) return;
+    setExcluindoExterna(r.id);
+    const res = await fetch(`/api/containers/saida-externa/${r.id}`, { method: "DELETE" });
+    setExcluindoExterna(null);
+    if (res.ok) {
+      loadExternas();
+    }
   }
 
   const porData = useMemo(() => {
@@ -423,14 +462,17 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
               onChange={(e) => setFiltroFim(e.target.value)}
             />
           </div>
-          <button onClick={loadReport} className="btn btn-secondary w-full sm:w-auto" type="button">
-            Atualizar
+          <button onClick={loadReport} className="btn btn-primary w-full sm:w-auto" type="button">
+            {loadingReport ? "Pesquisando..." : "Pesquisar"}
           </button>
-          <span className="text-xs text-[var(--muted)] sm:ml-auto">
-            {loadingReport ? "Carregando..." : `${rows.length} saída(s) no período`}
-          </span>
+          {rows !== null && (
+            <span className="text-xs text-[var(--muted)] sm:ml-auto">
+              {loadingReport ? "Carregando..." : `${rows.length} saída(s) no período`}
+            </span>
+          )}
         </div>
 
+        {rows !== null && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -476,6 +518,100 @@ export default function ColetasClient({ podeConfirmar = true }: { podeConfirmar?
           </table>
           </div>
         </div>
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold">Saídas Externas (planilha do terminal)</h2>
+          <a
+            href={`/api/containers/saida-externa/export?inicio=${filtroInicioExt}&fim=${filtroFimExt}`}
+            className="btn btn-secondary text-xs px-3 py-1.5"
+          >
+            Exportar Excel
+          </a>
+        </div>
+        <p className="text-xs text-[var(--muted)] mb-3">
+          Saídas registradas pela planilha do sistema do terminal, separadas das saídas via CM acima.
+        </p>
+        <div className="card p-4 mb-4 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
+          <div className="w-full sm:w-auto overflow-hidden rounded-xl">
+            <label className="text-xs font-medium text-[var(--muted)] block mb-1">De</label>
+            <input
+              type="date"
+              className="input"
+              value={filtroInicioExt}
+              onChange={(e) => setFiltroInicioExt(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-auto overflow-hidden rounded-xl">
+            <label className="text-xs font-medium text-[var(--muted)] block mb-1">Até</label>
+            <input
+              type="date"
+              className="input"
+              value={filtroFimExt}
+              onChange={(e) => setFiltroFimExt(e.target.value)}
+            />
+          </div>
+          <button onClick={loadExternas} className="btn btn-primary w-full sm:w-auto" type="button">
+            {loadingExternas ? "Pesquisando..." : "Pesquisar"}
+          </button>
+          {rowsExternas !== null && (
+            <span className="text-xs text-[var(--muted)] sm:ml-auto">
+              {loadingExternas ? "Carregando..." : `${rowsExternas.length} saída(s) no período`}
+            </span>
+          )}
+        </div>
+
+        {rowsExternas !== null && (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
+                <th className="px-4 py-3 font-medium">Número</th>
+                <th className="px-4 py-3 font-medium">Armador</th>
+                <th className="px-4 py-3 font-medium">Padrão</th>
+                <th className="px-4 py-3 font-medium">Exportador</th>
+                <th className="px-4 py-3 font-medium">Navio</th>
+                <th className="px-4 py-3 font-medium">Data da Saída</th>
+                {podeExcluirSaidaExterna && <th className="px-4 py-3 font-medium"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rowsExternas.map((r) => (
+                <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{r.container_numero}</td>
+                  <td className="px-4 py-3">{r.armador ?? "—"}</td>
+                  <td className="px-4 py-3">{r.padrao ?? "—"}</td>
+                  <td className="px-4 py-3">{r.exportador ?? "—"}</td>
+                  <td className="px-4 py-3">{r.navio ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--muted)]">{formatDateTimeBR(r.data_saida)}</td>
+                  {podeExcluirSaidaExterna && (
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
+                      onClick={() => excluirSaidaExterna(r)}
+                      disabled={excluindoExterna === r.id}
+                    >
+                      {excluindoExterna === r.id ? "..." : "Excluir"}
+                    </button>
+                  </td>
+                  )}
+                </tr>
+              ))}
+              {!loadingExternas && rowsExternas.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-[var(--muted)]">
+                    Nenhuma saída externa registrada no período.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        )}
       </div>
     </div>
   );

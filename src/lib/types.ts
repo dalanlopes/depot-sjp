@@ -97,6 +97,7 @@ export interface ReparosTable {
   faturado_em: Timestamp | null;
   dm: Dm | null;
   por_conta_depot: Generated<boolean>;
+  upgrade: Generated<boolean>;
   status_anterior: StatusContainer | null;
 }
 
@@ -134,6 +135,30 @@ export interface ColetasTable {
   criado_por_id: string | null;
 }
 
+// Saídas importadas da planilha do sistema do terminal (fora do fluxo de
+// Coletas/CM). Ver comentário em db/schema.sql.
+export interface SaidasExternasTable {
+  id: Generated<string>;
+  container_numero: string;
+  tipo: string | null;
+  entrada: Timestamp | null;
+  data_saida: Timestamp;
+  tara: string | null;
+  mgw: string | null;
+  booking: string | null;
+  dias_planilha: number | null;
+  car: string | null;
+  exportador: string | null;
+  navio: string | null;
+  vg: string | null;
+  lacre_exp: string | null;
+  lacre_p: string | null;
+  lacre_v: string | null;
+  criado_por_id: string | null;
+  criado_em: Generated<Timestamp>;
+  atualizado_em: Generated<Timestamp>;
+}
+
 export interface Database {
   users: UsersTable;
   containers: ContainersTable;
@@ -141,6 +166,7 @@ export interface Database {
   ocorrencias: OcorrenciasTable;
   programacoes: ProgramacoesTable;
   coletas: ColetasTable;
+  saidas_externas: SaidasExternasTable;
   solicitacoes_acesso: SolicitacoesAcessoTable;
   rate_limits: RateLimitsTable;
 }

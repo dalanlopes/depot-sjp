@@ -9,6 +9,11 @@ import { db } from "./db";
 const SESSION_COOKIE = "depot_session";
 const alg = "HS256";
 
+// Muda a cada deploy novo (ver next.config.ts). Usado para forçar logout de
+// todo mundo automaticamente sempre que uma atualização sobe ao ar, sem
+// precisar mexer em nada no banco.
+const DEPLOY_ID = process.env.DEPLOY_ID ?? "local";
+
 function getSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -25,7 +30,12 @@ export interface SessionPayload {
   tabs: Tab[];
   podeVerFaturamento: boolean;
   sessionVersion: number;
+  deployId: string;
 }
+
+// O código que cria uma sessão (login, definir senha) não precisa saber do
+// deploy atual — isso é preenchido automaticamente aqui dentro.
+type NewSessionInput = Omit<SessionPayload, "deployId">;
 
 export async function hashPassword(plain: string) {
   return bcrypt.hash(plain, 10);
@@ -48,15 +58,15 @@ export function generateSetupToken(): string {
   return token;
 }
 
-export async function createSessionToken(payload: SessionPayload) {
-  return new SignJWT({ ...payload })
+export async function createSessionToken(payload: NewSessionInput) {
+  return new SignJWT({ ...payload, deployId: DEPLOY_ID })
     .setProtectedHeader({ alg })
     .setIssuedAt()
     .setExpirationTime("12h")
     .sign(getSecret());
 }
 
-export async function setSessionCookie(payload: SessionPayload) {
+export async function setSessionCookie(payload: NewSessionInput) {
   const token = await createSessionToken(payload);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
@@ -80,6 +90,11 @@ export async function getSession(): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     const p = payload as unknown as SessionPayload;
+
+    // Toda sessão criada antes do deploy atual é invalidada aqui — não
+    // precisa de nenhuma ação manual: basta subir uma atualização (novo
+    // commit/deploy na Vercel) que todo mundo é obrigado a logar de novo.
+    if ((p.deployId ?? "local") !== DEPLOY_ID) return null;
 
     // Confere no banco se a sessão ainda é válida: usuário ativo e a versão
     // de sessão bate com a atual. Isso garante que desativar um usuário ou

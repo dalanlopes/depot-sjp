@@ -19,6 +19,9 @@ export default async function RelatoriosPage() {
           ocorrencias: canAccessTab(session, "ocorrencias"),
           programacao: canAccessTab(session, "programacao"),
           coletas: canAccessTab(session, "coletas"),
+          entradas: canAccessTab(session, "estoque") || canAccessTab(session, "coletas"),
+          saidasGeral: canAccessTab(session, "coletas"),
+          saidasExternas: canAccessTab(session, "coletas"),
         }}
       />
     </div>

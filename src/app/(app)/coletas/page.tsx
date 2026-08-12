@@ -1,5 +1,5 @@
 import { requireTab } from "@/lib/guard";
-import { canRegisterCollection } from "@/lib/roles";
+import { canRegisterCollection, canImportData } from "@/lib/roles";
 import ColetasClient from "./coletas-client";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,10 @@ export default async function ColetasPage() {
   return (
     <div>
       <h1 className="text-xl font-semibold mb-6">Coletas</h1>
-      <ColetasClient podeConfirmar={canRegisterCollection(session.role)} />
+      <ColetasClient
+        podeConfirmar={canRegisterCollection(session.role)}
+        podeExcluirSaidaExterna={canImportData(session.role)}
+      />
     </div>
   );
 }

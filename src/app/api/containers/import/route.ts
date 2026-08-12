@@ -1,93 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import ExcelJS from "exceljs";
-import { Readable } from "stream";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canImportData } from "@/lib/roles";
 import { ARMADORES, PADROES, STATUS_CONTAINER } from "@/lib/types";
-
-// Achata o valor de uma célula do exceljs (que pode vir como texto, número,
-// data, fórmula calculada ou rich text) para um valor simples, no mesmo
-// formato que o parser abaixo já espera.
-function cellPlain(v: ExcelJS.CellValue): string | number | Date | null {
-  if (v === null || v === undefined) return null;
-  if (v instanceof Date) return v;
-  if (typeof v === "object") {
-    const obj = v as unknown as Record<string, unknown>;
-    if (Array.isArray(obj.richText)) {
-      return (obj.richText as { text: string }[]).map((r) => r.text).join("");
-    }
-    if ("result" in obj) {
-      const r = obj.result;
-      if (r instanceof Date || typeof r === "number" || typeof r === "string") return r;
-      return null;
-    }
-    if ("text" in obj) return String(obj.text);
-    return null;
-  }
-  return v as string | number;
-}
-
-function worksheetToMatrix(worksheet: ExcelJS.Worksheet): unknown[][] {
-  const matrix: unknown[][] = [];
-  worksheet.eachRow({ includeEmpty: true }, (row) => {
-    const vals = row.values as ExcelJS.CellValue[];
-    const linha: unknown[] = [];
-    for (let c = 1; c < vals.length; c++) {
-      linha.push(cellPlain(vals[c]));
-    }
-    matrix.push(linha);
-  });
-  return matrix;
-}
-
-// Lê o arquivo enviado (.xlsx ou .csv) e devolve a matriz de células.
-// .xls (formato binário antigo do Excel 97-2003) não é suportado — pedimos
-// para o usuário salvar como .xlsx ou .csv.
-async function sheetToMatrix(buffer: Buffer, filename: string): Promise<unknown[][]> {
-  const lower = filename.toLowerCase();
-  const workbook = new ExcelJS.Workbook();
-
-  if (lower.endsWith(".csv")) {
-    const worksheet = await workbook.csv.read(Readable.from(buffer) as never);
-    return worksheetToMatrix(worksheet);
-  }
-
-  if (lower.endsWith(".xls")) {
-    throw new Error(
-      "Formato .xls (Excel 97-2003) não é suportado. Abra a planilha no Excel e salve como .xlsx ou .csv, depois envie novamente."
-    );
-  }
-
-  try {
-    await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
-  } catch {
-    throw new Error(
-      "Não foi possível ler o arquivo como planilha Excel (.xlsx). Verifique se o arquivo não está corrompido ou salve como .csv."
-    );
-  }
-  const worksheet = workbook.worksheets[0];
-  if (!worksheet) {
-    throw new Error("A planilha enviada não tem nenhuma aba com dados.");
-  }
-  return worksheetToMatrix(worksheet);
-}
-
-function matrixToObjects(matrix: unknown[][]): Record<string, unknown>[] {
-  if (matrix.length === 0) return [];
-  const header = matrix[0].map((c) => String(c ?? "").trim());
-  const rows: Record<string, unknown>[] = [];
-  for (let i = 1; i < matrix.length; i++) {
-    const row = matrix[i];
-    if (!row || isBlankRow(row)) continue;
-    const obj: Record<string, unknown> = {};
-    header.forEach((h, idx) => {
-      if (h) obj[h] = row[idx] ?? "";
-    });
-    rows.push(obj);
-  }
-  return rows;
-}
+import { sheetToMatrix, matrixToObjects, isBlankRow, parseDataHoraBR } from "@/lib/xlsx-import";
 
 interface ParsedRow {
   numero: string;
@@ -142,13 +58,11 @@ function normCarga(raw: string): string {
   return CARGA_ALIASES[v] ?? v;
 }
 
-function parseEntrada(raw: unknown): string | null {
-  if (raw instanceof Date && !isNaN(raw.getTime())) return raw.toISOString();
-  if (typeof raw === "string" && raw.trim()) {
-    const d = new Date(raw.trim());
-    if (!isNaN(d.getTime())) return d.toISOString();
-  }
-  return null;
+// Combina a célula de data de entrada com a de Hora (se houver) e devolve o
+// instante já corrigido pro horário do Brasil (ver parseDataHoraBR).
+function parseEntrada(raw: unknown, horaRaw?: unknown): string | null {
+  const d = parseDataHoraBR(raw, horaRaw);
+  return d ? d.toISOString() : null;
 }
 
 function parseValor(raw: unknown): number | null {
@@ -167,30 +81,77 @@ function parseValor(raw: unknown): number | null {
   return isNaN(n) ? null : n;
 }
 
-function isBlankRow(row: unknown[]): boolean {
-  return row.every((c) => c === null || c === undefined || String(c).trim() === "");
+// Normaliza nomes de coluna pra comparar sem acento/maiúscula/pontuação —
+// o mesmo relatório do terminal pode vir com "Tipo Cntr.", "ST", "Car",
+// "Dt.Entrada" etc. em vez dos nomes exatos "Tipo"/"Status"/"Carga"/"Entrada".
+function normHeaderCol(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
+type CampoTerminal = "container" | "tipo" | "armador" | "status" | "carga" | "entrada" | "hora" | "estimativa";
+
+const COLUNA_ALIASES: Record<string, CampoTerminal> = {
+  container: "container",
+  numero: "container",
+  tipo: "tipo",
+  tipocntr: "tipo",
+  armador: "armador",
+  status: "status",
+  st: "status",
+  carga: "carga",
+  car: "carga",
+  padrao: "carga",
+  entrada: "entrada",
+  dtentrada: "entrada",
+  dataentrada: "entrada",
+  hora: "hora",
+  estimativa: "estimativa",
+  valorestimado: "estimativa",
+};
+
 function parseTerminalReport(matrix: unknown[][]): ParsedRow[] | null {
-  const headerIdx = matrix.findIndex(
-    (row) => String(row[0] ?? "").trim().toLowerCase() === "container"
-  );
+  let headerIdx = -1;
+  let colMap: Partial<Record<CampoTerminal, number>> = {};
+  for (let i = 0; i < matrix.length; i++) {
+    const row = matrix[i];
+    if (!row) continue;
+    const map: Partial<Record<CampoTerminal, number>> = {};
+    row.forEach((cell, idx) => {
+      const norm = normHeaderCol(String(cell ?? ""));
+      const key = COLUNA_ALIASES[norm];
+      if (key && !(key in map)) map[key] = idx;
+    });
+    if (map.container !== undefined) {
+      headerIdx = i;
+      colMap = map;
+      break;
+    }
+  }
   if (headerIdx === -1) return null;
 
-  const header = matrix[headerIdx].map((c) => String(c ?? "").trim().toLowerCase());
-  const col = (name: string) => header.indexOf(name);
-  const idxContainer = col("container");
-  const idxTipo = col("tipo");
-  const idxArmador = col("armador");
-  const idxStatus = col("status");
-  const idxCarga = col("carga");
-  const idxEntrada = col("entrada");
-  const idxEstimativa = col("estimativa");
+  const idxContainer = colMap.container!;
+  const idxTipo = colMap.tipo ?? -1;
+  const idxArmador = colMap.armador ?? -1;
+  const idxStatus = colMap.status ?? -1;
+  const idxCarga = colMap.carga ?? -1;
+  const idxEntrada = colMap.entrada ?? -1;
+  const idxHora = colMap.hora ?? -1;
+  const idxEstimativa = colMap.estimativa ?? -1;
 
   const rows: ParsedRow[] = [];
   for (let i = headerIdx + 1; i < matrix.length; i++) {
     const row = matrix[i];
-    if (!row || isBlankRow(row)) break;
+    if (!row || isBlankRow(row)) {
+      // Pode ter uma linha em branco só entre o cabeçalho e os dados — ignora
+      // essa. Mas uma linha em branco DEPOIS que já vieram dados marca o fim
+      // do bloco (o que vem a seguir é rodapé/legenda do relatório).
+      if (rows.length > 0) break;
+      continue;
+    }
     const numero = String(row[idxContainer] ?? "").trim().toUpperCase();
     if (!numero) continue;
     rows.push({
@@ -198,7 +159,7 @@ function parseTerminalReport(matrix: unknown[][]): ParsedRow[] | null {
       armador: idxArmador >= 0 ? normArmador(String(row[idxArmador] ?? "")) : "",
       padrao: idxCarga >= 0 ? normCarga(String(row[idxCarga] ?? "")) : "",
       status: idxStatus >= 0 ? normStatus(String(row[idxStatus] ?? "")) || "WS" : "WS",
-      entrada: idxEntrada >= 0 ? parseEntrada(row[idxEntrada]) : null,
+      entrada: idxEntrada >= 0 ? parseEntrada(row[idxEntrada], idxHora >= 0 ? row[idxHora] : undefined) : null,
       tipo: idxTipo >= 0 ? String(row[idxTipo] ?? "").trim().toUpperCase() || null : null,
       valorEstimado: idxEstimativa >= 0 ? parseValor(row[idxEstimativa]) : null,
     });
