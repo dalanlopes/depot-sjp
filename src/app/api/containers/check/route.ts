@@ -8,7 +8,11 @@ import { canAccessTab } from "@/lib/roles";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canAccessTab(session, "oficina") && !canAccessTab(session, "estoque")) {
+  if (
+    !canAccessTab(session, "oficina") &&
+    !canAccessTab(session, "estoque") &&
+    !canAccessTab(session, "importacao")
+  ) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -19,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const container = await db
     .selectFrom("containers")
-    .select(["numero", "armador", "padrao", "status"])
+    .select(["numero", "armador", "padrao", "status", "tipo"])
     .where("numero", "=", numero)
     .executeTakeFirst();
 

@@ -71,6 +71,27 @@ export default function ImportacaoClient() {
   const [navio, setNavio] = useState("");
   const [savingManualSaida, setSavingManualSaida] = useState(false);
   const [manualSaidaMsg, setManualSaidaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [buscandoTipo, setBuscandoTipo] = useState(false);
+
+  // Ao sair do campo "Número do container", busca no estoque o tipo já
+  // cadastrado (planilha de Entrada) e preenche sozinho — evita digitar de
+  // novo algo que o sistema já sabe.
+  async function handleNumeroSaidaBlur() {
+    const n = numeroSaida.trim().toUpperCase();
+    if (!n) return;
+    setBuscandoTipo(true);
+    try {
+      const res = await fetch(`/api/containers/check?numero=${encodeURIComponent(n)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.existe && data.container?.tipo) {
+          setTipoSaida(data.container.tipo);
+        }
+      }
+    } finally {
+      setBuscandoTipo(false);
+    }
+  }
 
   async function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -501,6 +522,7 @@ export default function ImportacaoClient() {
                       className="input uppercase"
                       value={numeroSaida}
                       onChange={(e) => setNumeroSaida(e.target.value.toUpperCase())}
+                      onBlur={handleNumeroSaidaBlur}
                       placeholder="Ex: CAAU7936686"
                       required
                     />
@@ -519,8 +541,18 @@ export default function ImportacaoClient() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium block mb-1.5">Tipo (opcional)</label>
-                    <input className="input" value={tipoSaida} onChange={(e) => setTipoSaida(e.target.value)} placeholder="Ex: 40HC" />
+                    <label className="text-sm font-medium block mb-1.5">
+                      Tipo (opcional){buscandoTipo && <span className="text-[var(--muted)] font-normal"> · buscando...</span>}
+                    </label>
+                    <input
+                      className="input"
+                      value={tipoSaida}
+                      onChange={(e) => setTipoSaida(e.target.value)}
+                      placeholder="Ex: 40HC"
+                    />
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      Preenchido automaticamente com o tipo já cadastrado no estoque, se houver. Pode editar se precisar.
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-1.5">Booking (opcional)</label>
