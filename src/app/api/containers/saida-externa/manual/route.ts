@@ -25,7 +25,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canImportData(session.role)) {
+  if (!canImportData(session)) {
     return NextResponse.json({ error: "Sem permissão para registrar saídas." }, { status: 403 });
   }
 

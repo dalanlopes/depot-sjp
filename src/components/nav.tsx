@@ -27,8 +27,8 @@ export default function Nav({ session }: { session: SessionPayload }) {
 
   return (
     <>
-      {/* Barra superior visível apenas em telas pequenas */}
-      <div className="md:hidden sticky top-0 z-30 h-14 bg-white border-b border-[var(--border)] px-3 flex items-center justify-between">
+      {/* Barra superior com o botão de abrir o menu (sempre visível) */}
+      <div className="sticky top-0 z-30 h-14 bg-white border-b border-[var(--border)] px-3 flex items-center justify-between">
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir menu"
@@ -44,30 +44,25 @@ export default function Nav({ session }: { session: SessionPayload }) {
         <span className="w-9" />
       </div>
 
-      {/* Fundo escurecido ao abrir o menu mobile */}
+      {/* Fundo escurecido ao abrir o menu */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/40"
+          className="fixed inset-0 z-40 bg-black/40"
           onClick={() => setOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 md:z-auto h-screen w-64 shrink-0 border-r border-[var(--border)] bg-white flex flex-col p-4 overflow-y-auto transform transition-transform duration-200 ease-in-out ${
+        className={`fixed top-0 left-0 z-50 h-screen w-64 shrink-0 border-r border-[var(--border)] bg-white flex flex-col p-4 overflow-y-auto transform transition-transform duration-200 ease-in-out ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        }`}
       >
         <div className="flex items-center justify-between gap-2 px-2 py-3 mb-2">
-          <div>
-            <div className="text-sm font-semibold leading-tight">Vale do Tibagi</div>
-            <div className="text-[11px] text-[var(--muted)] leading-tight">
-              {ROLE_LABELS[session.role]}
-            </div>
-          </div>
+          <div className="text-sm font-semibold leading-tight">Vale do Tibagi</div>
           <button
             onClick={() => setOpen(false)}
             aria-label="Fechar menu"
-            className="md:hidden p-1 text-[var(--muted)]"
+            className="p-1 text-[var(--muted)]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -105,6 +100,7 @@ export default function Nav({ session }: { session: SessionPayload }) {
 
         <div className="border-t border-[var(--border)] pt-3 mt-3 shrink-0">
           <div className="px-2 text-sm font-medium truncate">{session.nome}</div>
+          <div className="px-2 text-[11px] text-[var(--muted)] leading-tight">{ROLE_LABELS[session.role]}</div>
           <button
             onClick={handleLogout}
             className="mt-2 w-full text-left text-sm text-[var(--muted)] hover:text-[var(--danger)] px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors"

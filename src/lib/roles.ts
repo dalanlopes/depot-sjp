@@ -92,6 +92,16 @@ export function canAccessTab(session: SessionLike, tab: Tab): boolean {
   return tabs.includes(tab);
 }
 
+// Verdadeiro quando o usuário tem acesso a essa aba mas ELA NÃO faz parte do
+// padrão do perfil dele — ou seja, foi concedida manualmente pelo gestor em
+// "Editar acessos". Usado para liberar, na hora, a ação principal daquela
+// aba (subir planilha em Importação, registrar coleta, registrar reparo)
+// para quem recebeu a permissão extra, mesmo sem ser do perfil que normalmente
+// faz aquilo.
+function hasExtraTabAccess(session: SessionLike, tab: Tab): boolean {
+  return canAccessTab(session, tab) && !TAB_ACCESS[session.role].includes(tab);
+}
+
 // Só Gestor e Analista de Faturamento veem/editam valores financeiros por
 // padrão do perfil. Qualquer outro usuário pode receber essa permissão extra
 // individualmente (pode_ver_faturamento) para ver (não editar) o faturamento
@@ -108,16 +118,24 @@ export function canEditFinance(session: SessionLike): boolean {
   return session.role === "GESTOR" || session.role === "ANALISTA_FATURAMENTO";
 }
 
-export function canRegisterRepair(role: Role): boolean {
-  return role === "MECANICO" || role === "GESTOR";
+export function canRegisterRepair(session: SessionLike): boolean {
+  return (
+    session.role === "MECANICO" ||
+    session.role === "GESTOR" ||
+    (hasExtraTabAccess(session, "oficina") && !isViewOnly(session.role))
+  );
 }
 
-export function canImportData(role: Role): boolean {
-  return role === "GESTOR";
+export function canImportData(session: SessionLike): boolean {
+  return session.role === "GESTOR" || (hasExtraTabAccess(session, "importacao") && !isViewOnly(session.role));
 }
 
-export function canRegisterCollection(role: Role): boolean {
-  return role === "GESTOR" || role === "ANALISTA_PROGRAMACAO";
+export function canRegisterCollection(session: SessionLike): boolean {
+  return (
+    session.role === "GESTOR" ||
+    session.role === "ANALISTA_PROGRAMACAO" ||
+    (hasExtraTabAccess(session, "coletas") && !isViewOnly(session.role))
+  );
 }
 
 export function defaultTabFor(session: SessionLike): Tab {

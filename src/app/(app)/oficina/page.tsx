@@ -10,7 +10,7 @@ export default async function OficinaPage() {
     <div>
       <h1 className="text-xl font-semibold mb-6">Oficina · Reparos</h1>
       <OficinaClient
-        canRegister={canRegisterRepair(session.role)}
+        canRegister={canRegisterRepair(session)}
         canFinance={canViewFinance(session)}
         canEditFinance={canEditFinance(session)}
         canEditPadrao={canEditContainerData(session.role)}

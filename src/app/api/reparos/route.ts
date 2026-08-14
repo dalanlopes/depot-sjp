@@ -81,7 +81,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canRegisterRepair(session.role)) {
+  if (!canRegisterRepair(session)) {
     return NextResponse.json({ error: "Sem permissão para registrar reparos." }, { status: 403 });
   }
 

@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canRegisterCollection(session.role)) {
+  if (!canRegisterCollection(session)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

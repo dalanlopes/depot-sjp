@@ -8,7 +8,7 @@ import { canImportData } from "@/lib/roles";
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canImportData(session.role)) {
+  if (!canImportData(session)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

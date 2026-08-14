@@ -13,7 +13,7 @@ const schema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canRegisterCollection(session.role)) {
+  if (!canRegisterCollection(session)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -111,7 +111,7 @@ export async function DELETE(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canRegisterCollection(session.role)) {
+  if (!canRegisterCollection(session)) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

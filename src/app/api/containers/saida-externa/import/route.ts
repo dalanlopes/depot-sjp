@@ -133,7 +133,7 @@ function parseSheet(matrix: unknown[][]): ParsedSaida[] {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canImportData(session.role)) {
+  if (!canImportData(session)) {
     return NextResponse.json({ error: "Sem permissão para importar dados." }, { status: 403 });
   }
 

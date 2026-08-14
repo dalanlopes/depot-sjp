@@ -10,8 +10,8 @@ export default async function ColetasPage() {
     <div>
       <h1 className="text-xl font-semibold mb-6">Coletas</h1>
       <ColetasClient
-        podeConfirmar={canRegisterCollection(session.role)}
-        podeExcluirSaidaExterna={canImportData(session.role)}
+        podeConfirmar={canRegisterCollection(session)}
+        podeExcluirSaidaExterna={canImportData(session)}
       />
     </div>
   );
