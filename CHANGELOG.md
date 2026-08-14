@@ -5,6 +5,27 @@ tela de login vem do campo `version` do `package.json` (veja `src/lib/version.ts
 Ao lançar uma mudança relevante, atualize o `version` no `package.json` e
 adicione uma entrada aqui.
 
+## 1.5.0 — 2026-08-12/14
+
+- Oficina: bloqueio de reparo duplicado (container com status OK não pode
+  ser registrado de novo até uma nova entrada), garantindo que o indicador
+  de reparos não seja inflado por engano.
+- Oficina: faturamento mensal e contagem de reparos no mês (card visível
+  também para o Mecânico), além do faturamento do dia ao clicar numa barra
+  do gráfico (troca de nome/valor no mesmo card, sem indicador zerado
+  durante o carregamento).
+- Oficina: nível de reparo por DM com detalhamento por unidade — valor de
+  cada reparo, unidades por conta do Depot, por armador e por upgrade,
+  sempre ordenadas por armador e depois por container.
+- Coletas: correção de fuso horário — coletas feitas após 23h ficam no dia
+  correto (não mais empurradas para o dia seguinte); meta semanal passou a
+  ser calculada de domingo a sábado, reiniciando toda semana.
+- Relatórios: campo Container pesquisável em todos os tipos de relatório.
+- Ajustes visuais: colunas fixas para Depot, Upgrade e Ações (Excluir) no
+  histórico da Oficina, e diversos textos de apoio removidos das telas de
+  Estoque, Importação, Coletas, Relatórios e Usuários para deixá-las mais
+  limpas.
+
 ## 1.4.0 — 2026-08-11/12
 
 - Oficina: campo "Upgrade" ao registrar reparo; registro passou a ser direto

@@ -22,7 +22,7 @@ export default async function LoginPage() {
         <div className="card p-6">
           <LoginForm />
         </div>
-        <p className="text-center text-xs text-[var(--muted)] mt-4">Versão {APP_VERSION}</p>
+        <p className="text-center text-xs text-[var(--muted)] mt-10">Versão {APP_VERSION}</p>
       </div>
     </div>
   );
