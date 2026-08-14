@@ -45,6 +45,13 @@ export async function GET() {
         )
       )
     )
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom("saidas_externas as se").select("se.id").whereRef("se.container_numero", "=", "c.numero")
+        )
+      )
+    )
     .select((eb) => eb.fn.count<number>("c.numero").as("count"))
     .executeTakeFirst();
 
