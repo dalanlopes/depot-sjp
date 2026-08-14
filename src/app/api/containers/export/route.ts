@@ -38,21 +38,7 @@ export async function GET(req: NextRequest) {
         )
       )
     )
-    .select((eb) => [
-      "c.numero",
-      "c.armador",
-      "c.padrao",
-      "c.status",
-      "c.tipo",
-      "c.entrada",
-      eb
-        .selectFrom("reparos as r")
-        .select("r.valor_faturado")
-        .whereRef("r.container_numero", "=", "c.numero")
-        .orderBy("r.data", "desc")
-        .limit(1)
-        .as("valor_reparo"),
-    ])
+    .select(["c.numero", "c.armador", "c.padrao", "c.status", "c.tipo", "c.entrada"])
     .orderBy("c.numero");
 
   if (status) query = query.where("c.status", "=", status as never);
@@ -74,7 +60,6 @@ export async function GET(req: NextRequest) {
     { header: "Descrição Status", key: "statusDesc", width: 28 },
     { header: "Entrada", key: "entrada", width: 14 },
     { header: "Dias em estoque", key: "dias", width: 16 },
-    { header: "Valor (oficina)", key: "valor", width: 16 },
   ];
   sheet.getRow(1).font = { bold: true };
 
@@ -89,7 +74,6 @@ export async function GET(req: NextRequest) {
       statusDesc: STATUS_LABELS[c.status as StatusContainer] ?? "",
       entrada: c.entrada ? formatDateBR(c.entrada as unknown as string) : "",
       dias: diasEmEstoque(c.entrada as unknown as string) ?? "",
-      valor: c.valor_reparo ? Number(c.valor_reparo) : "",
     });
   }
 

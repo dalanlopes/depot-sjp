@@ -5,6 +5,26 @@ tela de login vem do campo `version` do `package.json` (veja `src/lib/version.ts
 Ao lançar uma mudança relevante, atualize o `version` no `package.json` e
 adicione uma entrada aqui.
 
+## 1.6.0 — 2026-08-14
+
+- Permissões: conceder uma aba extra a um usuário (Importação, Coletas ou
+  Oficina) agora libera de verdade a ação principal daquela aba (subir
+  planilha, registrar coleta, registrar reparo), mesmo fora do perfil padrão.
+- Coletas: a data registrada ao confirmar uma coleta vinda da Programação
+  passou a ser a data solicitada (não mais o momento da confirmação no
+  sistema), evitando contagem no dia errado; adicionado campo para informar
+  a data real quando ela for diferente da solicitada.
+- Menu lateral: passou a ficar escondido por padrão, abrindo só pelo botão
+  de 3 barras; o perfil do usuário (Gestor, Mecânico etc.) foi movido para
+  baixo do nome, no rodapé do menu.
+- Estoque: status das unidades no popout agora mostram só o código (WS, AR,
+  AE, RE, OK), com uma legenda no topo explicando cada um; coluna "Valor
+  (oficina)" removida da tela e do Excel exportado.
+- Identidade visual: nova logo/favicon (círculo branco) usada na aba do
+  navegador e na prévia de link.
+- Ambiente de homologação atualizado com uma cópia fiel dos dados de
+  produção, para testes mais realistas.
+
 ## 1.5.0 — 2026-08-12/14
 
 - Oficina: bloqueio de reparo duplicado (container com status OK não pode

@@ -155,6 +155,15 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
               </button>
             </div>
 
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4 text-xs text-[var(--muted)]">
+              {STATUS_CONTAINER.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5">
+                  <StatusBadge status={s} />
+                  {STATUS_LABELS[s]}
+                </span>
+              ))}
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end mb-4">
               <div>
                 <label className="text-xs font-medium text-[var(--muted)] block mb-1">Buscar número</label>
@@ -209,13 +218,11 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Entrada</th>
                     <th className="px-3 py-2 font-medium">Dias em estoque</th>
-                    <th className="px-3 py-2 font-medium">Valor (oficina)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detalhesFiltrados.map((c) => {
                     const dias = diasEmEstoque(c.entrada);
-                    const valor = c.valor_reparo ?? c.valor_estimado;
                     return (
                       <tr key={c.numero} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
                         <td className="px-3 py-2 font-medium">{c.numero}</td>
@@ -248,17 +255,12 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
                           {c.entrada ? formatDateBR(c.entrada) : "—"}
                         </td>
                         <td className="px-3 py-2 text-[var(--muted)]">{dias !== null ? `${dias} dia(s)` : "—"}</td>
-                        <td className="px-3 py-2">
-                          {valor
-                            ? `R$ ${Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${c.valor_reparo ? "" : " (estimado)"}`
-                            : "—"}
-                        </td>
                       </tr>
                     );
                   })}
                   {!loadingDetalhe && detalhesFiltrados.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-[var(--muted)]">
+                      <td colSpan={6} className="px-3 py-8 text-center text-[var(--muted)]">
                         Nenhum container encontrado.
                       </td>
                     </tr>
