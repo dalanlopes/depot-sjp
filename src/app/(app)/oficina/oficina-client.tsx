@@ -401,6 +401,7 @@ export default function OficinaClient({
                         <thead>
                           <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
                             <th className="px-3 py-2 font-medium">Container</th>
+                            <th className="px-3 py-2 font-medium">Upgrade</th>
                             <th className="px-3 py-2 font-medium">Depot</th>
                             <th className="px-3 py-2 font-medium">Armador</th>
                             <th className="px-3 py-2 font-medium">Padrão</th>
@@ -411,6 +412,11 @@ export default function OficinaClient({
                           {unidadesDoDm.map((r) => (
                             <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
                               <td className="px-3 py-2 font-medium">{r.container_numero}</td>
+                              <td className="px-3 py-2">
+                                {r.upgrade && (
+                                  <span className="badge bg-blue-100 text-blue-700 text-[10px]">Upgrade</span>
+                                )}
+                              </td>
                               <td className="px-3 py-2">
                                 {r.por_conta_depot && (
                                   <span className="badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
@@ -433,7 +439,7 @@ export default function OficinaClient({
                           ))}
                           {unidadesDoDm.length === 0 && (
                             <tr>
-                              <td colSpan={canFinance ? 5 : 4} className="px-3 py-6 text-center text-[var(--muted)]">
+                              <td colSpan={canFinance ? 6 : 5} className="px-3 py-6 text-center text-[var(--muted)]">
                                 Nenhuma unidade reparada nesse nível.
                               </td>
                             </tr>
@@ -520,6 +526,7 @@ export default function OficinaClient({
                 <thead>
                   <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
                     <th className="px-3 py-2 font-medium">Container</th>
+                    <th className="px-3 py-2 font-medium">Upgrade</th>
                     <th className="px-3 py-2 font-medium">Depot</th>
                     <th className="px-3 py-2 font-medium">DM</th>
                     <th className="px-3 py-2 font-medium">Armador</th>
@@ -532,10 +539,10 @@ export default function OficinaClient({
                 <tbody>
                   {historyRows.map((r) => (
                     <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
-                      <td className="px-3 py-2 font-medium">
-                        {r.container_numero}
+                      <td className="px-3 py-2 font-medium">{r.container_numero}</td>
+                      <td className="px-3 py-2">
                         {r.upgrade && (
-                          <span className="ml-1.5 badge bg-blue-100 text-blue-700 text-[10px]">Upgrade</span>
+                          <span className="badge bg-blue-100 text-blue-700 text-[10px]">Upgrade</span>
                         )}
                       </td>
                       <td className="px-3 py-2">
@@ -616,7 +623,7 @@ export default function OficinaClient({
                   {historyRows.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6 + (canFinance ? 1 : 0) + (canFinance && canEditFinance ? 1 : 0)}
+                        colSpan={7 + (canFinance ? 1 : 0) + (canFinance && canEditFinance ? 1 : 0)}
                         className="px-3 py-8 text-center text-[var(--muted)]"
                       >
                         Nenhum reparo registrado nesse dia.

@@ -531,9 +531,6 @@ export default function ColetasClient({
             Exportar Excel
           </a>
         </div>
-        <p className="text-xs text-[var(--muted)] mb-3">
-          Saídas registradas pela planilha do sistema do terminal, separadas das saídas via CM acima.
-        </p>
         <div className="card p-4 mb-4 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
           <div className="w-full sm:w-auto overflow-hidden rounded-xl">
             <label className="text-xs font-medium text-[var(--muted)] block mb-1">De</label>

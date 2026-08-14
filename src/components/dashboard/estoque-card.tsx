@@ -45,7 +45,6 @@ export default function EstoqueCard({
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-red-700">Avariadas</p>
-            <p className="text-[11px] text-[var(--muted)]">Aguardando autorização, entrada ou em reparo</p>
           </div>
           <span className="text-xl font-bold text-red-700">{avariadas}</span>
         </div>
@@ -54,7 +53,6 @@ export default function EstoqueCard({
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-700">OK · Carga Geral</p>
-            <p className="text-[11px] text-[var(--muted)]">Não é coletado pela matriz/PG</p>
           </div>
           <span className="text-xl font-bold text-gray-700">{cargaGeralOk}</span>
         </div>
