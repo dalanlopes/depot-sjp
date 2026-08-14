@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab, canRegisterCollection } from "@/lib/roles";
 
+function toYmd(value: unknown): string {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,6 +44,7 @@ export async function GET(
 const schema = z.object({
   containerNumero: z.string().min(4, "Informe a numeração do container."),
   codigoCmVeiculo: z.string().min(1, "Informe o código do CM."),
+  data: z.string().optional(), // data real da coleta (YYYY-MM-DD); se ausente, usa a data solicitada
 });
 
 export async function POST(
@@ -64,7 +69,7 @@ export async function POST(
 
   const programacao = await db
     .selectFrom("programacoes")
-    .select(["id", "armador"])
+    .select(["id", "armador", "data_retirada"])
     .where("id", "=", id)
     .executeTakeFirst();
   if (!programacao) {
@@ -105,13 +110,25 @@ export async function POST(
     return NextResponse.json({ error: "Este container já foi coletado." }, { status: 409 });
   }
 
+  // Sem data informada explicitamente: usa a data solicitada na Programação
+  // (não o momento em que é confirmada no sistema), pra não contar a coleta
+  // no dia errado.
+  let dataSaida = new Date(`${toYmd(programacao.data_retirada)}T12:00:00-03:00`).toISOString();
+  if (parsed.data.data) {
+    const d = new Date(`${parsed.data.data}T12:00:00-03:00`);
+    if (isNaN(d.getTime())) {
+      return NextResponse.json({ error: "Data de saída inválida." }, { status: 400 });
+    }
+    dataSaida = d.toISOString();
+  }
+
   await db
     .insertInto("coletas")
     .values({
       container_numero: numero,
       codigo_cm_veiculo: parsed.data.codigoCmVeiculo.trim(),
       status: "CONCLUIDO",
-      data: new Date().toISOString(),
+      data: dataSaida,
       programacao_id: id,
       criado_por_id: session.userId,
     })

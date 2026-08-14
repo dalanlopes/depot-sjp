@@ -49,6 +49,7 @@ interface Summary {
 interface FormState {
   cm: string;
   containers: string[];
+  data: string;
 }
 
 interface ProgramacaoGrupo {
@@ -210,30 +211,33 @@ export default function ColetasClient({
     return Array.from(byDate.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [pendentes, hoje, ontem, ontemNaJanela]);
 
-  function getForm(programacaoId: string): FormState {
-    return formState[programacaoId] ?? { cm: "", containers: [""] };
+  function getForm(programacaoId: string, dataRetirada?: string): FormState {
+    return formState[programacaoId] ?? { cm: "", containers: [""], data: dataRetirada ?? todayStr() };
   }
 
-  function updateForm(programacaoId: string, patch: Partial<FormState>) {
-    setFormState((prev) => ({ ...prev, [programacaoId]: { ...getForm(programacaoId), ...patch } }));
+  function updateForm(programacaoId: string, patch: Partial<FormState>, dataRetirada?: string) {
+    setFormState((prev) => ({
+      ...prev,
+      [programacaoId]: { ...getForm(programacaoId, dataRetirada), ...patch },
+    }));
   }
 
-  function updateContainer(programacaoId: string, index: number, value: string) {
-    const form = getForm(programacaoId);
+  function updateContainer(programacaoId: string, index: number, value: string, dataRetirada?: string) {
+    const form = getForm(programacaoId, dataRetirada);
     const containers = form.containers.map((c, i) => (i === index ? value : c));
-    updateForm(programacaoId, { containers });
+    updateForm(programacaoId, { containers }, dataRetirada);
   }
 
-  function addContainerField(programacaoId: string) {
-    const form = getForm(programacaoId);
+  function addContainerField(programacaoId: string, dataRetirada?: string) {
+    const form = getForm(programacaoId, dataRetirada);
     if (form.containers.length >= 2) return;
-    updateForm(programacaoId, { containers: [...form.containers, ""] });
+    updateForm(programacaoId, { containers: [...form.containers, ""] }, dataRetirada);
   }
 
-  function removeContainerField(programacaoId: string, index: number) {
-    const form = getForm(programacaoId);
+  function removeContainerField(programacaoId: string, index: number, dataRetirada?: string) {
+    const form = getForm(programacaoId, dataRetirada);
     if (form.containers.length <= 1) return;
-    updateForm(programacaoId, { containers: form.containers.filter((_, i) => i !== index) });
+    updateForm(programacaoId, { containers: form.containers.filter((_, i) => i !== index) }, dataRetirada);
   }
 
   async function excluirColeta(r: ColetaRow) {
@@ -249,10 +253,11 @@ export default function ColetasClient({
     }
   }
 
-  async function confirmarGrupo(programacaoId: string, itens: PendenteRow[]) {
-    const form = getForm(programacaoId);
+  async function confirmarGrupo(programacaoId: string, itens: PendenteRow[], dataRetirada: string) {
+    const form = getForm(programacaoId, dataRetirada);
     const cm = form.cm.trim();
     const containers = form.containers.map((c) => c.trim().toUpperCase()).filter(Boolean);
+    const dataReal = form.data || dataRetirada;
 
     setPendMessage(null);
     if (containers.length === 0) {
@@ -278,12 +283,12 @@ export default function ColetasClient({
         ? await fetch(`/api/coletas/${pendente.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm }),
+            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm, data: dataReal }),
           })
         : await fetch(`/api/programacao/${programacaoId}/coletas`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm }),
+            body: JSON.stringify({ containerNumero: containers[i], codigoCmVeiculo: cm, data: dataReal }),
           });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -295,7 +300,7 @@ export default function ColetasClient({
     }
     setConfirmando(null);
     setPendMessage({ type: "ok", text: `Coleta confirmada: ${containers.join(", ")} (CM ${cm}).` });
-    setFormState((prev) => ({ ...prev, [programacaoId]: { cm: "", containers: [""] } }));
+    setFormState((prev) => ({ ...prev, [programacaoId]: { cm: "", containers: [""], data: dataRetirada } }));
     refreshAll();
   }
 
@@ -351,7 +356,7 @@ export default function ColetasClient({
               {dataAberta && (
               <div>
                 {progGroups.map(([programacaoId, g]) => {
-                  const form = getForm(programacaoId);
+                  const form = getForm(programacaoId, g.data_retirada);
                   return (
                     <div key={programacaoId} className="border-b border-[var(--border)] last:border-0">
                       <button
@@ -380,12 +385,12 @@ export default function ColetasClient({
                                   className="input flex-1 min-w-[140px]"
                                   placeholder={i === 0 ? "Número do container" : "2º container (mesmo CM)"}
                                   value={c}
-                                  onChange={(e) => updateContainer(programacaoId, i, e.target.value)}
+                                  onChange={(e) => updateContainer(programacaoId, i, e.target.value, g.data_retirada)}
                                 />
                                 {i === 1 && (
                                   <button
                                     type="button"
-                                    onClick={() => removeContainerField(programacaoId, i)}
+                                    onClick={() => removeContainerField(programacaoId, i, g.data_retirada)}
                                     className="text-[var(--muted)] hover:text-[var(--danger)] px-1 text-lg leading-none"
                                     aria-label="Remover container"
                                   >
@@ -398,20 +403,31 @@ export default function ColetasClient({
                               className="input flex-1 min-w-[120px]"
                               placeholder="Código CM"
                               value={form.cm}
-                              onChange={(e) => updateForm(programacaoId, { cm: e.target.value })}
+                              onChange={(e) => updateForm(programacaoId, { cm: e.target.value }, g.data_retirada)}
                             />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="date"
+                                className="input"
+                                value={form.data}
+                                onChange={(e) => updateForm(programacaoId, { data: e.target.value }, g.data_retirada)}
+                              />
+                            </div>
                             <button
                               className="btn btn-primary text-xs px-3 py-1.5 disabled:opacity-50"
-                              onClick={() => confirmarGrupo(programacaoId, g.itens)}
+                              onClick={() => confirmarGrupo(programacaoId, g.itens, g.data_retirada)}
                               disabled={confirmando === programacaoId}
                             >
                               {confirmando === programacaoId ? "Salvando..." : "Confirmar"}
                             </button>
                           </div>
+                          <p className="text-[11px] text-[var(--muted)]">
+                            Data da coleta: vem preenchida com a data solicitada ({formatDateBR(`${g.data_retirada}T12:00:00-03:00`)}); troque só se a retirada realmente aconteceu em outro dia.
+                          </p>
                           {form.containers.length < 2 && (
                             <button
                               type="button"
-                              onClick={() => addContainerField(programacaoId)}
+                              onClick={() => addContainerField(programacaoId, g.data_retirada)}
                               className="text-xs font-medium text-[var(--primary)]"
                             >
                               + Adicionar outro container para o mesmo CM
