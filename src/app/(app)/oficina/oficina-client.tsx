@@ -34,6 +34,12 @@ interface PontoDia {
   quantidade: number;
 }
 
+interface DiaSelecionado {
+  data: string;
+  loading: boolean;
+  reparos: ReparoRow[];
+}
+
 function todayStr() {
   return todayBR();
 }
@@ -69,7 +75,8 @@ export default function OficinaClient({
   const [rows, setRows] = useState<ReparoRow[]>([]);
   const [meta, setMeta] = useState(35);
   const [faltam, setFaltam] = useState(35);
-  const [valorEstimado, setValorEstimado] = useState<number | undefined>(undefined);
+  const [reparosNoMes, setReparosNoMes] = useState(0);
+  const [valorEstimadoMes, setValorEstimadoMes] = useState<number | undefined>(undefined);
 
   const [numero, setNumero] = useState("");
   const [dm, setDm] = useState<Dm>("DM1");
@@ -84,9 +91,11 @@ export default function OficinaClient({
   const [series7d, setSeries7d] = useState<PontoDia[]>([]);
   const [metaDiaria, setMetaDiaria] = useState(35);
 
-  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
-  const [diaSelecionadoDm, setDiaSelecionadoDm] = useState<Record<string, number> | null>(null);
-  const [diaSelecionadoLoading, setDiaSelecionadoLoading] = useState(false);
+  // Um único estado (não três separados) pra evitar qualquer render
+  // intermediário com "data selecionada" mas ainda sem os dados carregados
+  // (o que causava um pisca de R$ 0,00 no card de faturamento do dia).
+  const [diaSel, setDiaSel] = useState<DiaSelecionado | null>(null);
+  const [dmSelecionado, setDmSelecionado] = useState<Dm | null>(null);
 
   const [historyDate, setHistoryDate] = useState(todayStr());
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -99,7 +108,6 @@ export default function OficinaClient({
     setRows(data.reparos ?? []);
     setMeta(data.meta ?? 35);
     setFaltam(data.faltamParaMeta ?? Math.max((data.meta ?? 35) - (data.reparos?.length ?? 0), 0));
-    setValorEstimado(data.valorEstimado);
   }, []);
 
   const loadSummary = useCallback(async () => {
@@ -108,6 +116,8 @@ export default function OficinaClient({
       const data = await res.json();
       setSeries7d(data.series7d ?? []);
       setMetaDiaria(data.metaDiaria ?? 35);
+      setReparosNoMes(data.reparosNoMes ?? 0);
+      setValorEstimadoMes(data.valorEstimadoMes);
     }
   }, []);
 
@@ -122,24 +132,43 @@ export default function OficinaClient({
   }, [load, loadSummary]);
 
   async function handleBarClick(point: PontoDia) {
-    if (diaSelecionado === point.data) {
-      setDiaSelecionado(null);
-      setDiaSelecionadoDm(null);
+    if (diaSel?.data === point.data) {
+      setDiaSel(null);
+      setDmSelecionado(null);
       return;
     }
-    setDiaSelecionado(point.data);
-    setDiaSelecionadoLoading(true);
+    setDmSelecionado(null);
+    setDiaSel({ data: point.data, loading: true, reparos: [] });
     const res = await fetch(`/api/reparos?data=${point.data}`);
-    if (res.ok) {
-      const data = await res.json();
-      const counts: Record<string, number> = Object.fromEntries(DM_OPCOES.map((o) => [o, 0]));
-      for (const r of (data.reparos ?? []) as ReparoRow[]) {
-        if (r.dm && counts[r.dm] !== undefined) counts[r.dm] += 1;
-      }
-      setDiaSelecionadoDm(counts);
-    }
-    setDiaSelecionadoLoading(false);
+    const reparos = res.ok ? ((await res.json()).reparos ?? []) : [];
+    setDiaSel({ data: point.data, loading: false, reparos: reparos as ReparoRow[] });
   }
+
+  const diaSelecionado = diaSel?.data ?? null;
+  const diaSelecionadoReparos = diaSel?.reparos ?? [];
+  const diaSelecionadoLoading = diaSel?.loading ?? false;
+
+  const dmCounts: Record<string, number> = Object.fromEntries(DM_OPCOES.map((o) => [o, 0]));
+  for (const r of diaSelecionadoReparos) {
+    if (r.dm && dmCounts[r.dm] !== undefined) dmCounts[r.dm] += 1;
+  }
+  const unidadesDoDm = dmSelecionado
+    ? diaSelecionadoReparos
+        .filter((r) => r.dm === dmSelecionado)
+        .sort((a, b) => a.armador.localeCompare(b.armador) || a.container_numero.localeCompare(b.container_numero))
+    : [];
+  const depotNoDm = unidadesDoDm.filter((r) => r.por_conta_depot).length;
+  const porArmadorNoDm: Record<string, number> = {};
+  for (const r of unidadesDoDm) {
+    porArmadorNoDm[r.armador] = (porArmadorNoDm[r.armador] ?? 0) + 1;
+  }
+
+  // Faturamento do dia selecionado no gráfico (soma o que não é por conta do
+  // Depot) — só faz sentido mostrar pra quem também vê o faturamento mensal.
+  const faturamentoDoDia = diaSelecionadoReparos.reduce(
+    (acc, r) => (r.por_conta_depot ? acc : acc + Number(r.valor_faturado ?? 0)),
+    0
+  );
 
   async function registrar() {
     const n = numero.trim().toUpperCase();
@@ -241,7 +270,7 @@ export default function OficinaClient({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4">
           <p className="text-xs text-[var(--muted)] mb-1">Reparados hoje</p>
           <p className="text-2xl font-bold">{rows.length}</p>
@@ -252,11 +281,23 @@ export default function OficinaClient({
             {faltam}
           </p>
         </div>
+        <div className="card p-4">
+          <p className="text-xs text-[var(--muted)] mb-1">Reparos no mês</p>
+          <p className="text-2xl font-bold">{reparosNoMes}</p>
+        </div>
         {canFinance && (
           <div className="card p-4">
-            <p className="text-xs text-[var(--muted)] mb-1">Valor já estimado (faturamento)</p>
+            <p className="text-xs text-[var(--muted)] mb-1">
+              {diaSelecionado
+                ? `Faturamento do dia ${formatDateBR(`${diaSelecionado}T12:00:00-03:00`)}`
+                : "Faturamento mensal"}
+            </p>
             <p className="text-2xl font-bold">
-              R$ {(valorEstimado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {diaSelecionado && diaSelecionadoLoading
+                ? "..."
+                : `R$ ${(diaSelecionado ? faturamentoDoDia : valorEstimadoMes ?? 0).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}`}
             </p>
           </div>
         )}
@@ -305,7 +346,7 @@ export default function OficinaClient({
               </p>
               <button
                 type="button"
-                onClick={() => { setDiaSelecionado(null); setDiaSelecionadoDm(null); }}
+                onClick={() => { setDiaSel(null); setDmSelecionado(null); }}
                 className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 Fechar
@@ -314,14 +355,95 @@ export default function OficinaClient({
             {diaSelecionadoLoading ? (
               <p className="text-sm text-[var(--muted)]">Carregando...</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {DM_OPCOES.map((opt) => (
-                  <div key={opt} className="rounded-xl bg-indigo-50 px-3 py-2.5 text-center">
-                    <p className="text-[11px] font-semibold text-indigo-700">{opt}</p>
-                    <p className="text-lg font-bold text-indigo-900">{diaSelecionadoDm?.[opt] ?? 0}</p>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {DM_OPCOES.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setDmSelecionado(dmSelecionado === opt ? null : opt)}
+                      className={`rounded-xl px-3 py-2.5 text-center transition ${
+                        dmSelecionado === opt ? "bg-indigo-200" : "bg-indigo-50 hover:bg-indigo-100"
+                      }`}
+                    >
+                      <p className="text-[11px] font-semibold text-indigo-700">{opt}</p>
+                      <p className="text-lg font-bold text-indigo-900">{dmCounts[opt] ?? 0}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {dmSelecionado && (
+                  <div className="mt-4 border-t border-[var(--border)] pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-[var(--muted)]">
+                        Unidades reparadas em {dmSelecionado} — {formatDateBR(`${diaSelecionado}T12:00:00-03:00`)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setDmSelecionado(null)}
+                        className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <span className="badge bg-amber-100 text-amber-700">
+                        {depotNoDm} por conta do Depot
+                      </span>
+                      {Object.entries(porArmadorNoDm).map(([arm, count]) => (
+                        <span key={arm} className="badge bg-gray-100 text-gray-700">
+                          {arm}: {count}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
+                            <th className="px-3 py-2 font-medium">Container</th>
+                            <th className="px-3 py-2 font-medium">Depot</th>
+                            <th className="px-3 py-2 font-medium">Armador</th>
+                            <th className="px-3 py-2 font-medium">Padrão</th>
+                            {canFinance && <th className="px-3 py-2 font-medium">Valor</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {unidadesDoDm.map((r) => (
+                            <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
+                              <td className="px-3 py-2 font-medium">{r.container_numero}</td>
+                              <td className="px-3 py-2">
+                                {r.por_conta_depot && (
+                                  <span className="badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">{r.armador}</td>
+                              <td className="px-3 py-2">{r.padrao}</td>
+                              {canFinance && (
+                                <td className="px-3 py-2">
+                                  {r.por_conta_depot ? (
+                                    "—"
+                                  ) : r.valor_faturado ? (
+                                    `R$ ${Number(r.valor_faturado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                          {unidadesDoDm.length === 0 && (
+                            <tr>
+                              <td colSpan={canFinance ? 5 : 4} className="px-3 py-6 text-center text-[var(--muted)]">
+                                Nenhuma unidade reparada nesse nível.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -398,11 +520,13 @@ export default function OficinaClient({
                 <thead>
                   <tr className="text-left text-xs text-[var(--muted)] border-b border-[var(--border)]">
                     <th className="px-3 py-2 font-medium">Container</th>
+                    <th className="px-3 py-2 font-medium">Depot</th>
                     <th className="px-3 py-2 font-medium">DM</th>
                     <th className="px-3 py-2 font-medium">Armador</th>
                     <th className="px-3 py-2 font-medium">Padrão</th>
                     <th className="px-3 py-2 font-medium">Data do Reparo</th>
                     {canFinance && <th className="px-3 py-2 font-medium">Faturamento</th>}
+                    {canFinance && canEditFinance && <th className="px-3 py-2 font-medium">Ações</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -410,11 +534,13 @@ export default function OficinaClient({
                     <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-gray-50">
                       <td className="px-3 py-2 font-medium">
                         {r.container_numero}
-                        {r.por_conta_depot && (
-                          <span className="ml-1.5 badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
-                        )}
                         {r.upgrade && (
                           <span className="ml-1.5 badge bg-blue-100 text-blue-700 text-[10px]">Upgrade</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {r.por_conta_depot && (
+                          <span className="badge bg-amber-100 text-amber-700 text-[10px]">Depot</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-[var(--muted)]">{r.dm ?? "—"}</td>
@@ -444,35 +570,24 @@ export default function OficinaClient({
                                 />
                                 Por conta do Depot
                               </label>
-                              <div className="flex items-center gap-2">
-                                {r.por_conta_depot ? (
-                                  <span className="text-xs text-[var(--muted)]">Não cobrado</span>
-                                ) : (
-                                  <>
-                                    <input
-                                      className="input max-w-[110px]"
-                                      placeholder="0,00"
-                                      defaultValue={r.valor_faturado ?? ""}
-                                      onChange={(e) =>
-                                        setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
-                                      }
-                                    />
-                                    <button
-                                      className="btn btn-secondary text-xs px-2 py-1"
-                                      onClick={() => saveValor(r.id)}
-                                    >
-                                      Salvar
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
-                                  onClick={() => excluirReparo(r)}
-                                  disabled={excluindoReparo === r.id}
-                                >
-                                  {excluindoReparo === r.id ? "..." : "Excluir"}
-                                </button>
-                              </div>
+                              {!r.por_conta_depot && (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    className="input max-w-[90px]"
+                                    placeholder="0,00"
+                                    defaultValue={r.valor_faturado ?? ""}
+                                    onChange={(e) =>
+                                      setEditing((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                    }
+                                  />
+                                  <button
+                                    className="btn btn-secondary text-xs px-2 py-1"
+                                    onClick={() => saveValor(r.id)}
+                                  >
+                                    Salvar
+                                  </button>
+                                </div>
+                              )}
                             </>
                           ) : r.por_conta_depot ? (
                             <span className="text-xs text-[var(--muted)]">Por conta do Depot (não cobrado)</span>
@@ -485,11 +600,25 @@ export default function OficinaClient({
                           )}
                         </td>
                       )}
+                      {canFinance && canEditFinance && (
+                        <td className="px-3 py-2">
+                          <button
+                            className="text-xs text-[var(--danger)] hover:underline disabled:opacity-50"
+                            onClick={() => excluirReparo(r)}
+                            disabled={excluindoReparo === r.id}
+                          >
+                            {excluindoReparo === r.id ? "..." : "Excluir"}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {historyRows.length === 0 && (
                     <tr>
-                      <td colSpan={canFinance ? 6 : 5} className="px-3 py-8 text-center text-[var(--muted)]">
+                      <td
+                        colSpan={6 + (canFinance ? 1 : 0) + (canFinance && canEditFinance ? 1 : 0)}
+                        className="px-3 py-8 text-center text-[var(--muted)]"
+                      >
                         Nenhum reparo registrado nesse dia.
                       </td>
                     </tr>

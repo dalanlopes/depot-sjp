@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab, canRegisterCollection } from "@/lib/roles";
+import { todayBR, addDaysBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
 
 const schema = z.object({
   containerNumero: z.string().min(4),
@@ -53,10 +54,10 @@ export async function GET(req: NextRequest) {
   const inicioParam = searchParams.get("inicio");
   const fimParam = searchParams.get("fim");
 
-  const fim = fimParam ? new Date(`${fimParam}T23:59:59.999`) : new Date();
-  const inicio = inicioParam
-    ? new Date(`${inicioParam}T00:00:00`)
-    : new Date(fim.getTime() - 29 * 24 * 60 * 60 * 1000);
+  const fimYmd = fimParam ?? todayBR();
+  const inicioYmd = inicioParam ?? addDaysBR(fimYmd, -29);
+  const fim = endOfDayBR(fimYmd);
+  const inicio = startOfDayBR(inicioYmd);
 
   const coletas = await db
     .selectFrom("coletas as co")
@@ -81,8 +82,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     coletas,
     total: coletas.length,
-    inicio: inicio.toISOString().slice(0, 10),
-    fim: fim.toISOString().slice(0, 10),
+    inicio: inicioYmd,
+    fim: fimYmd,
   });
 }
 
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
 
   let dataSaida = new Date().toISOString();
   if (parsed.data.data) {
-    const d = new Date(`${parsed.data.data}T12:00:00`);
+    const d = new Date(`${parsed.data.data}T12:00:00-03:00`);
     if (isNaN(d.getTime())) {
       return NextResponse.json({ error: "Data de saída inválida." }, { status: 400 });
     }

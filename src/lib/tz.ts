@@ -76,6 +76,20 @@ export function sundayOfWeekBR(ymd: string): string {
   return addDaysBR(mondayOfWeekBR(ymd), 6);
 }
 
+/**
+ * Sunday (YYYY-MM-DD) that starts the operational week (domingo a sábado),
+ * used for the Coletas weekly goal — it resets every Sunday.
+ */
+export function startOfOperWeekBR(ymd: string): string {
+  const weekday = startOfDayBR(ymd).getUTCDay(); // 0=Sun..6=Sat
+  return addDaysBR(ymd, -weekday);
+}
+
+/** Saturday (YYYY-MM-DD) that ends the operational week (domingo a sábado). */
+export function endOfOperWeekBR(ymd: string): string {
+  return addDaysBR(startOfOperWeekBR(ymd), 6);
+}
+
 /** Current hour of day (0-23) in Brazil time. */
 export function nowHourBR(): number {
   return Number(

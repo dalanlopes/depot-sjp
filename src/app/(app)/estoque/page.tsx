@@ -8,10 +8,7 @@ export default async function EstoquePage() {
   const session = await requireTab("estoque");
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-1">Estoque</h1>
-      <p className="text-sm text-[var(--muted)] mb-6">
-        Listagem em tempo real conectada à Tabela Mestre de containers.
-      </p>
+      <h1 className="text-xl font-semibold mb-6">Estoque</h1>
       <EstoqueClient canEdit={canEditContainerData(session.role)} />
     </div>
   );

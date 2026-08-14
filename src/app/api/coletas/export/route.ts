@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab } from "@/lib/roles";
-import { formatDateTimeBR } from "@/lib/tz";
+import { formatDateTimeBR, todayBR, addDaysBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -16,10 +16,10 @@ export async function GET(req: NextRequest) {
   const inicioParam = searchParams.get("inicio");
   const fimParam = searchParams.get("fim");
 
-  const fim = fimParam ? new Date(`${fimParam}T23:59:59.999`) : new Date();
-  const inicio = inicioParam
-    ? new Date(`${inicioParam}T00:00:00`)
-    : new Date(fim.getTime() - 29 * 24 * 60 * 60 * 1000);
+  const fimYmd = fimParam ?? todayBR();
+  const inicioYmd = inicioParam ?? addDaysBR(fimYmd, -29);
+  const fim = endOfDayBR(fimYmd);
+  const inicio = startOfDayBR(inicioYmd);
 
   const rows = await db
     .selectFrom("coletas as co")

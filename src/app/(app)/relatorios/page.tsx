@@ -8,10 +8,7 @@ export default async function RelatoriosPage() {
   const session = await requireTab("relatorios");
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-1">Relatórios</h1>
-      <p className="text-sm text-[var(--muted)] mb-6">
-        Escolha um processo, aplique os filtros e exporte os dados em Excel.
-      </p>
+      <h1 className="text-xl font-semibold mb-6">Relatórios</h1>
       <RelatoriosClient
         acesso={{
           estoque: canAccessTab(session, "estoque"),

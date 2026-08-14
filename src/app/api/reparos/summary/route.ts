@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { sql } from "kysely";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessTab } from "@/lib/roles";
-import { todayBR, addDaysBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
+import { canAccessTab, canViewFinance } from "@/lib/roles";
+import { todayBR, addDaysBR, startOfDayBR, endOfDayBR, startOfMonthBR } from "@/lib/tz";
 import { META_DIARIA_REPAROS } from "@/lib/types";
 
 export async function GET() {
@@ -32,8 +32,23 @@ export async function GET() {
     series7d.push({ data: key, quantidade: byDay.get(key) ?? 0 });
   }
 
+  // Faturamento é sempre mensal: soma tudo desde o dia 1 do mês corrente
+  // (hora de Brasília) até agora, não só o dia de hoje.
+  const inicioMes = startOfMonthBR(hoje);
+  const mesRow = await sql<{ total: string; valor: string }>`
+    select count(*)::int as total,
+           coalesce(sum(valor_faturado) filter (where not por_conta_depot), 0) as valor
+    from reparos
+    where data >= ${startOfDayBR(inicioMes).toISOString()}
+      and data <= ${endOfDayBR(hoje).toISOString()}
+  `.execute(db);
+
+  const showFinance = canViewFinance(session);
+
   return NextResponse.json({
     series7d,
     metaDiaria: META_DIARIA_REPAROS,
+    reparosNoMes: Number(mesRow.rows[0]?.total ?? 0),
+    valorEstimadoMes: showFinance ? Number(mesRow.rows[0]?.valor ?? 0) : undefined,
   });
 }

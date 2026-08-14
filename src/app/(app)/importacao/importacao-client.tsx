@@ -236,11 +236,6 @@ export default function ImportacaoClient() {
         <div className="space-y-5">
           <div>
             <h2 className="text-sm font-semibold mb-1">Entrada de containers</h2>
-            <p className="text-xs text-[var(--muted)] mb-3">
-              Cadastra ou atualiza containers em massa. Colunas esperadas: <code>Container</code>, <code>Tipo</code>,{" "}
-              <code>Armador</code>, <code>Entrada</code>, <code>Status</code>, <code>Estimativa</code>,{" "}
-              <code>Carga</code>.
-            </p>
           </div>
           <label
             onDragOver={(e) => {
@@ -414,11 +409,7 @@ export default function ImportacaoClient() {
       {aba === "saida" && (
         <div className="space-y-5">
           <div>
-            <h2 className="text-sm font-semibold mb-1">Saída de containers (planilha externa)</h2>
-            <p className="text-xs text-[var(--muted)] mb-3">
-              Planilha do sistema do terminal com as saídas. Containers que já saíram via CM (aba Coletas) são
-              ignorados automaticamente, pra não contar a mesma saída duas vezes.
-            </p>
+            <h2 className="text-sm font-semibold mb-1">Saída de containers</h2>
           </div>
           <label
             onDragOver={(e) => {

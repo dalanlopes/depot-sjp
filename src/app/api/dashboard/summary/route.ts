@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canViewFinance } from "@/lib/roles";
 import { META_DIARIA_REPAROS, META_DIARIA_COLETAS, META_SEMANAL_COLETAS, ARMADORES, type Armador } from "@/lib/types";
-import { todayBR, addDaysBR, startOfDayBR, endOfDayBR, mondayOfWeekBR, sundayOfWeekBR } from "@/lib/tz";
+import { todayBR, addDaysBR, startOfDayBR, endOfDayBR, startOfOperWeekBR, endOfOperWeekBR } from "@/lib/tz";
 
 export async function GET() {
   const session = await getSession();
@@ -16,8 +16,9 @@ export async function GET() {
 
   const showFinance = canViewFinance(session);
 
-  const segunda = mondayOfWeekBR(hoje);
-  const domingo = sundayOfWeekBR(hoje);
+  // Semana operacional de Coletas: domingo a sábado, reinicia todo domingo.
+  const inicioSemana = startOfOperWeekBR(hoje);
+  const fimSemana = endOfOperWeekBR(hoje);
 
   const [reparosRows, estoqueRows, solicitadoRows, concluidoRows, ocorrenciasRows, coletasSemanaRow] = await Promise.all([
     sql<{ day: string; count: string; valor: string }>`
@@ -80,8 +81,8 @@ export async function GET() {
       select count(*)::int as total
       from coletas
       where status = 'CONCLUIDO'
-        and data >= ${startOfDayBR(segunda).toISOString()}
-        and data <= ${endOfDayBR(domingo).toISOString()}
+        and data >= ${startOfDayBR(inicioSemana).toISOString()}
+        and data <= ${endOfDayBR(fimSemana).toISOString()}
     `.execute(db),
   ]);
 

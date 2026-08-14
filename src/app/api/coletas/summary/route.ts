@@ -3,7 +3,7 @@ import { sql } from "kysely";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessTab } from "@/lib/roles";
-import { todayBR, mondayOfWeekBR, sundayOfWeekBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
+import { todayBR, startOfOperWeekBR, endOfOperWeekBR, startOfDayBR, endOfDayBR } from "@/lib/tz";
 import { META_SEMANAL_COLETAS } from "@/lib/types";
 
 export async function GET() {
@@ -48,17 +48,16 @@ export async function GET() {
     .select((eb) => eb.fn.count<number>("c.numero").as("count"))
     .executeTakeFirst();
 
-  // Meta semanal: 35/dia em dias uteis (seg-sex) = 175/semana. Sabado e domingo
-  // contam como coleta extra/reposicao, entao a contagem sempre olha a semana
-  // inteira (segunda a domingo) contra a mesma meta de 175.
-  const segunda = mondayOfWeekBR(hoje);
-  const domingo = sundayOfWeekBR(hoje);
+  // Meta semanal: 35/dia em dias uteis = 175/semana. A semana operacional vai
+  // de domingo a sábado e reinicia todo domingo.
+  const inicioSemana = startOfOperWeekBR(hoje);
+  const fimSemana = endOfOperWeekBR(hoje);
   const semanaRow = await sql<{ total: string }>`
     select count(*)::int as total
     from coletas
     where status = 'CONCLUIDO'
-      and data >= ${startOfDayBR(segunda).toISOString()}
-      and data <= ${endOfDayBR(domingo).toISOString()}
+      and data >= ${startOfDayBR(inicioSemana).toISOString()}
+      and data <= ${endOfDayBR(fimSemana).toISOString()}
   `.execute(db);
 
   const coletadosSemana = Number(semanaRow.rows[0]?.total ?? 0);

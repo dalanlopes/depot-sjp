@@ -116,6 +116,17 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
+    // Container já reparado (status OK) não pode ser reparado de novo até
+    // voltar a precisar (nova entrada muda o status) — evita registrar o
+    // mesmo container duas vezes e inflar o indicador de reparados.
+    if (container.status === "OK") {
+      failed.push({
+        numero: item.numero,
+        motivo: "Este container já está reparado (status OK). Só é possível registrar de novo após uma nova entrada.",
+      });
+      continue;
+    }
+
     await db.transaction().execute(async (trx) => {
       await trx
         .insertInto("reparos")

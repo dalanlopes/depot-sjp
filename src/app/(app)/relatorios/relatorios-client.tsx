@@ -93,6 +93,15 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
     return params;
   }
 
+  // Nome do campo com o número do container em cada processo — usado pra
+  // filtrar a tabela na hora, sem precisar gerar o relatório de novo.
+  // Ocorrências e Programação não têm container, então não mostram o campo.
+  function campoContainer(p: Processo): "numero" | "container_numero" | null {
+    if (p === "estoque" || p === "entradas" || p === "saidasGeral") return "numero";
+    if (p === "oficina" || p === "coletas" || p === "saidasExternas") return "container_numero";
+    return null;
+  }
+
   function baseEndpoint(p: Processo) {
     if (p === "estoque") return "containers";
     if (p === "oficina") return "reparos";
@@ -109,7 +118,7 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
     const params = buildParams();
     const res = await fetch(`/api/${baseEndpoint(processo)}?${params.toString()}`);
     const data = await res.json();
-    let lista: Record<string, unknown>[] =
+    const lista: Record<string, unknown>[] =
       data.containers ??
       data.reparos ??
       data.ocorrencias ??
@@ -118,15 +127,22 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
       data.entradas ??
       data.saidas ??
       [];
-    if (processo === "estoque" && numero.trim()) {
-      const q = numero.trim().toUpperCase();
-      lista = lista.filter((c) => String(c.numero ?? "").toUpperCase().includes(q));
-    }
     setRows(lista);
     setLoading(false);
   }
 
   const exportHref = processo ? `/api/${baseEndpoint(processo)}/export?${buildParams().toString()}` : "#";
+
+  // Filtro por container aplicado na hora, em cima do que já foi carregado —
+  // não precisa clicar em "Gerar relatório" de novo pra buscar um número.
+  const campo = processo ? campoContainer(processo) : null;
+  const buscaContainer = numero.trim().toUpperCase();
+  const displayRows =
+    rows === null
+      ? null
+      : campo && buscaContainer
+        ? rows.filter((r) => String(r[campo] ?? "").toUpperCase().includes(buscaContainer))
+        : rows;
 
   async function abrirLiberados(p: Record<string, unknown>) {
     const id = String(p.id ?? "");
@@ -199,10 +215,6 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-[var(--muted)] block mb-1">Buscar número</label>
-                <input className="input" placeholder="Ex: CAAU7936686" value={numero} onChange={(e) => setNumero(e.target.value)} />
-              </div>
             </>
           ) : (
             <>
@@ -215,6 +227,18 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
                 <input type="date" className="input" value={fim} onChange={(e) => setFim(e.target.value)} />
               </div>
             </>
+          )}
+
+          {campo && (
+            <div>
+              <label className="text-xs font-medium text-[var(--muted)] block mb-1">Container</label>
+              <input
+                className="input"
+                placeholder="Ex: CAAU7936686"
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+              />
+            </div>
           )}
 
           <button type="button" onClick={gerar} disabled={!processo || loading} className="btn btn-primary disabled:opacity-60">
@@ -233,11 +257,14 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
         )}
       </div>
 
-      {rows !== null && (
+      {displayRows !== null && (
         <div className="card overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] bg-gray-50 flex items-center justify-between">
             <span className="text-sm font-semibold">{PROCESSO_LABELS[processo as Processo]}</span>
-            <span className="text-xs text-[var(--muted)]">{rows.length} registro(s)</span>
+            <span className="text-xs text-[var(--muted)]">
+              {displayRows.length} registro(s)
+              {buscaContainer && rows && displayRows.length !== rows.length ? ` de ${rows.length}` : ""}
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -321,7 +348,7 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 200).map((r, i) => (
+                {displayRows.slice(0, 200).map((r, i) => (
                   <tr
                     key={i}
                     className={`border-b border-[var(--border)] last:border-0 hover:bg-gray-50 ${
@@ -418,7 +445,7 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
                     )}
                   </tr>
                 ))}
-                {rows.length === 0 && (
+                {displayRows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-3 py-10 text-center text-[var(--muted)]">
                       Nenhum registro encontrado para os filtros selecionados.
@@ -428,9 +455,9 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
               </tbody>
             </table>
           </div>
-          {rows.length > 200 && (
+          {displayRows.length > 200 && (
             <p className="text-xs text-[var(--muted)] px-4 py-2">
-              Mostrando os primeiros 200 registros. Exporte em Excel para ver a lista completa ({rows.length}).
+              Mostrando os primeiros 200 registros. Exporte em Excel para ver a lista completa ({displayRows.length}).
             </p>
           )}
         </div>

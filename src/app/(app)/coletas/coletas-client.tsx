@@ -523,7 +523,7 @@ export default function ColetasClient({
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Saídas Externas (planilha do terminal)</h2>
+          <h2 className="text-sm font-semibold">Saídas Externas</h2>
           <a
             href={`/api/containers/saida-externa/export?inicio=${filtroInicioExt}&fim=${filtroFimExt}`}
             className="btn btn-secondary text-xs px-3 py-1.5"
