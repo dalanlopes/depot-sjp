@@ -24,7 +24,7 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  if (!canEditContainerData(session.role)) {
+  if (!canEditContainerData(session)) {
     return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
   }
 

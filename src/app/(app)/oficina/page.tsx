@@ -13,7 +13,7 @@ export default async function OficinaPage() {
         canRegister={canRegisterRepair(session)}
         canFinance={canViewFinance(session)}
         canEditFinance={canEditFinance(session)}
-        canEditPadrao={canEditContainerData(session.role)}
+        canEditPadrao={canEditContainerData(session)}
       />
     </div>
   );

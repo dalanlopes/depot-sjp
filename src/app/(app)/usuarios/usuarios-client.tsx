@@ -13,6 +13,7 @@ interface Usuario {
   criado_em: string;
   tabs: string[] | null;
   pode_ver_faturamento: boolean;
+  pode_editar_status: boolean;
   senhaDefinida: boolean;
   codigoConvite: string | null;
 }
@@ -64,10 +65,12 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
   const [role, setRole] = useState<Role>("MECANICO");
   const [tabs, setTabs] = useState<Tab[]>(TAB_ACCESS["MECANICO"]);
   const [podeVerFaturamento, setPodeVerFaturamento] = useState(false);
+  const [podeEditarStatus, setPodeEditarStatus] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTabs, setEditTabs] = useState<Tab[]>([]);
   const [editFaturamento, setEditFaturamento] = useState(false);
+  const [editStatus, setEditStatus] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,7 +118,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
     const res = await fetch("/api/usuarios", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, role, tabs, podeVerFaturamento }),
+      body: JSON.stringify({ nome, email, role, tabs, podeVerFaturamento, podeEditarStatus }),
     });
     setSaving(false);
     const data = await res.json().catch(() => ({}));
@@ -131,6 +134,7 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
     setRole("MECANICO");
     setTabs(TAB_ACCESS["MECANICO"]);
     setPodeVerFaturamento(false);
+    setPodeEditarStatus(false);
     setInfo("Usuário criado. Repasse o código de convite abaixo para ele fazer o primeiro acesso.");
     load();
   }
@@ -168,13 +172,14 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
     setEditingId(u.id);
     setEditTabs((u.tabs && u.tabs.length > 0 ? u.tabs : TAB_ACCESS[u.role]) as Tab[]);
     setEditFaturamento(u.pode_ver_faturamento);
+    setEditStatus(u.pode_editar_status);
   }
 
   async function salvarEdicao(u: Usuario) {
     await fetch(`/api/usuarios/${u.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tabs: editTabs, podeVerFaturamento: editFaturamento }),
+      body: JSON.stringify({ tabs: editTabs, podeVerFaturamento: editFaturamento, podeEditarStatus: editStatus }),
     });
     setEditingId(null);
     load();
@@ -250,6 +255,14 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
             onChange={(e) => setPodeVerFaturamento(e.target.checked)}
           />
           Pode ver o faturamento da Oficina
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={podeEditarStatus}
+            onChange={(e) => setPodeEditarStatus(e.target.checked)}
+          />
+          Pode alterar o status/padrão dos containers (Estoque/Oficina)
         </label>
         <p className="text-xs text-[var(--muted)]">
           Sem senha aqui: o usuário entra com esse e-mail e cria a própria senha no primeiro acesso.
@@ -372,6 +385,14 @@ export default function UsuariosClient({ currentUserId }: { currentUserId: strin
                               onChange={(e) => setEditFaturamento(e.target.checked)}
                             />
                             Pode ver o faturamento da Oficina
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editStatus}
+                              onChange={(e) => setEditStatus(e.target.checked)}
+                            />
+                            Pode alterar o status/padrão dos containers (Estoque/Oficina)
                           </label>
                           <button
                             onClick={() => salvarEdicao(u)}

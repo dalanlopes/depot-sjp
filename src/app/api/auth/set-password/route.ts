@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
     role: user.role,
     tabs: resolveTabs(user.role, user.tabs),
     podeVerFaturamento: user.pode_ver_faturamento,
+    podeEditarStatus: user.pode_editar_status,
     sessionVersion: user.session_version,
   });
 

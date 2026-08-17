@@ -75,6 +75,7 @@ interface SessionLike {
   role: Role;
   tabs?: Tab[] | null;
   podeVerFaturamento?: boolean;
+  podeEditarStatus?: boolean;
 }
 
 // Resolve as abas efetivas do usuário: usa a lista salva no cadastro dele;
@@ -151,11 +152,18 @@ export function canDeleteOcorrencia(role: Role): boolean {
   return role === "GESTOR";
 }
 
-// Corrigir o padrão (AL/CG/OU) de um container já cadastrado, direto no
-// popout de reparados da Oficina. Liberado para quem também lança os valores
-// de faturamento (Gestor e Analista de Faturamento).
-export function canEditContainerData(role: Role): boolean {
-  return role === "GESTOR" || role === "ANALISTA_FATURAMENTO";
+// Corrigir o padrão (AL/CG/OU) e/ou o status (WS/AR/AE/RE/OK) de um container
+// já cadastrado, direto no popout de reparados da Oficina ou no Estoque.
+// Liberado por padrão para quem lança os valores de faturamento (Gestor e
+// Analista de Faturamento), e também, individualmente, para qualquer usuário
+// que receba a permissão extra "pode_editar_status" em Usuários — mesmo que
+// não seja do perfil.
+export function canEditContainerData(session: SessionLike): boolean {
+  return (
+    session.role === "GESTOR" ||
+    session.role === "ANALISTA_FATURAMENTO" ||
+    !!session.podeEditarStatus
+  );
 }
 
 // Perfil Visualizador tem acesso somente leitura: nunca pode criar, editar

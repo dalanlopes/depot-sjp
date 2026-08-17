@@ -59,6 +59,7 @@ export interface UsersTable {
   criado_em: Generated<Timestamp>;
   tabs: string[] | null;
   pode_ver_faturamento: Generated<boolean>;
+  pode_editar_status: Generated<boolean>;
   setup_token: string | null;
   setup_token_expira: Timestamp | null;
   session_version: Generated<number>;

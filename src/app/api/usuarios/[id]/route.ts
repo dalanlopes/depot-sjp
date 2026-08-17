@@ -11,6 +11,7 @@ const schema = z.object({
   ativo: z.boolean().optional(),
   tabs: z.array(z.enum(ALL_TABS as [string, ...string[]])).optional(),
   podeVerFaturamento: z.boolean().optional(),
+  podeEditarStatus: z.boolean().optional(),
   resetSenha: z.boolean().optional(),
 });
 
@@ -35,6 +36,7 @@ export async function PATCH(
   if (parsed.data.ativo !== undefined) update.ativo = parsed.data.ativo;
   if (parsed.data.tabs !== undefined) update.tabs = parsed.data.tabs.length > 0 ? parsed.data.tabs : null;
   if (parsed.data.podeVerFaturamento !== undefined) update.pode_ver_faturamento = parsed.data.podeVerFaturamento;
+  if (parsed.data.podeEditarStatus !== undefined) update.pode_editar_status = parsed.data.podeEditarStatus;
 
   let codigoConvite: string | null = null;
   if (parsed.data.resetSenha) {

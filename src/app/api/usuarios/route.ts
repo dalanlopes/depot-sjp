@@ -17,6 +17,7 @@ const schema = z.object({
   role: z.enum(ROLE_VALUES),
   tabs: z.array(z.enum(ALL_TABS as [string, ...string[]])).default([]),
   podeVerFaturamento: z.boolean().default(false),
+  podeEditarStatus: z.boolean().default(false),
 });
 
 export async function GET() {
@@ -37,6 +38,7 @@ export async function GET() {
       "criado_em",
       "tabs",
       "pode_ver_faturamento",
+      "pode_editar_status",
       "senha_hash",
       "setup_token",
       "setup_token_expira",
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role as never,
       tabs: parsed.data.tabs.length > 0 ? parsed.data.tabs : null,
       pode_ver_faturamento: parsed.data.podeVerFaturamento,
+      pode_editar_status: parsed.data.podeEditarStatus,
       setup_token: setupToken,
       setup_token_expira: setupTokenExpira.toISOString(),
     })

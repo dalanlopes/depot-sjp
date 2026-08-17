@@ -9,7 +9,7 @@ export default async function EstoquePage() {
   return (
     <div>
       <h1 className="text-xl font-semibold mb-6">Estoque</h1>
-      <EstoqueClient canEdit={canEditContainerData(session.role)} />
+      <EstoqueClient canEdit={canEditContainerData(session)} />
     </div>
   );
 }

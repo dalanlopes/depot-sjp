@@ -5,6 +5,13 @@ tela de login vem do campo `version` do `package.json` (veja `src/lib/version.ts
 Ao lançar uma mudança relevante, atualize o `version` no `package.json` e
 adicione uma entrada aqui.
 
+## 1.7.0 — 2026-08-17
+
+- Permissões: nova permissão extra por usuário "Pode alterar o status/padrão
+  dos containers" — liberável individualmente em Usuários, para qualquer
+  e-mail, independente do perfil, sem precisar ser Gestor ou Analista de
+  Faturamento.
+
 ## 1.6.0 — 2026-08-14
 
 - Permissões: conceder uma aba extra a um usuário (Importação, Coletas ou

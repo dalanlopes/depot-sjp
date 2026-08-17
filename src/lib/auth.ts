@@ -29,6 +29,7 @@ export interface SessionPayload {
   role: Role;
   tabs: Tab[];
   podeVerFaturamento: boolean;
+  podeEditarStatus: boolean;
   sessionVersion: number;
   deployId: string;
 }
@@ -110,12 +111,13 @@ export async function getSession(): Promise<SessionPayload | null> {
     if ((p.sessionVersion ?? 1) !== atual.session_version) return null;
 
     // Sessões antigas (criadas antes das permissões por usuário) não têm
-    // "tabs"/"podeVerFaturamento" no token: preenche com o padrão do perfil
-    // para não quebrar a interface até o usuário logar de novo.
+    // "tabs"/"podeVerFaturamento"/"podeEditarStatus" no token: preenche com o
+    // padrão do perfil para não quebrar a interface até o usuário logar de novo.
     return {
       ...p,
       tabs: resolveTabs(p.role, p.tabs),
       podeVerFaturamento: p.podeVerFaturamento ?? false,
+      podeEditarStatus: p.podeEditarStatus ?? false,
       sessionVersion: atual.session_version,
     };
   } catch {
