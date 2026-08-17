@@ -41,6 +41,9 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
   const [detalhes, setDetalhes] = useState<Record<string, ColetaDetalhe[]>>({});
   const [loadingDetalhe, setLoadingDetalhe] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [removerQtd, setRemoverQtd] = useState<Record<string, string>>({});
+  const [removendo, setRemovendo] = useState<string | null>(null);
+  const [removerMsg, setRemoverMsg] = useState<{ id: string; type: "ok" | "error"; text: string } | null>(null);
 
   // A lista mostra hoje, os próximos 4 dias (programações futuras já
   // registradas) e, até 12h depois da virada do dia, o dia anterior também
@@ -107,6 +110,32 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
       loadRows();
     } else {
       setMessage({ type: "error", text: data.error ?? "Erro ao excluir a programação." });
+    }
+  }
+
+  async function removerVagas(r: ProgramacaoRow) {
+    const faltam = Math.max(r.quantidade - r.realizada, 0);
+    const qtd = Math.max(1, Math.min(faltam, parseInt(removerQtd[r.id] ?? "1", 10) || 0));
+    if (!confirm(`Remover ${qtd} vaga(s) pendente(s) de ${r.armador} (${r.solicitante || "—"})?`)) return;
+    setRemovendo(r.id);
+    setRemoverMsg(null);
+    const res = await fetch(`/api/programacao/${r.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ removerQuantidade: qtd }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setRemovendo(null);
+    if (res.ok) {
+      setRemoverQtd((prev) => ({ ...prev, [r.id]: "1" }));
+      setDetalhes((prev) => {
+        const next = { ...prev };
+        delete next[r.id];
+        return next;
+      });
+      loadRows();
+    } else {
+      setRemoverMsg({ id: r.id, type: "error", text: data.error ?? "Erro ao remover vagas." });
     }
   }
 
@@ -291,6 +320,34 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
                       </div>
                       {expandedId === r.id && (
                         <div className="border-t border-[var(--border)] p-4 bg-gray-50">
+                          {podeEditar && faltam > 0 && (
+                            <div className="flex flex-wrap items-end gap-2 mb-4 pb-4 border-b border-[var(--border)]">
+                              <div>
+                                <label className="text-xs font-medium text-[var(--muted)] block mb-1">
+                                  Remover vagas pendentes ({faltam} dispon{faltam === 1 ? "ível" : "íveis"})
+                                </label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={faltam}
+                                  className="input max-w-[100px]"
+                                  value={removerQtd[r.id] ?? "1"}
+                                  onChange={(e) => setRemoverQtd((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removerVagas(r)}
+                                disabled={removendo === r.id}
+                                className="btn btn-secondary text-xs px-3 py-1.5 disabled:opacity-50"
+                              >
+                                {removendo === r.id ? "Removendo..." : "Remover"}
+                              </button>
+                              {removerMsg?.id === r.id && (
+                                <p className="text-xs text-[var(--danger)] w-full">{removerMsg.text}</p>
+                              )}
+                            </div>
+                          )}
                           {loadingDetalhe === r.id && <p className="text-sm text-[var(--muted)]">Carregando...</p>}
                           {loadingDetalhe !== r.id && (detalhes[r.id]?.length ?? 0) === 0 && (
                             <p className="text-sm text-[var(--muted)]">Nenhuma vaga registrada.</p>
