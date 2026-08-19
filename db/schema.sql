@@ -20,6 +20,7 @@ CREATE TABLE users (
   criado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
   tabs                 TEXT[], -- abas liberadas para esse usuário; nulo = usa o padrão do perfil
   pode_ver_faturamento BOOLEAN NOT NULL DEFAULT false, -- permissão extra para ver faturamento da Oficina
+  pode_editar_status   BOOLEAN NOT NULL DEFAULT false, -- permissão extra para alterar status/padrão dos containers
   setup_token          TEXT, -- código de uso único p/ 1º acesso ou pós-reset; nulo depois de usado
   setup_token_expira   TIMESTAMPTZ, -- validade do setup_token (7 dias)
   session_version      INTEGER NOT NULL DEFAULT 1 -- incrementado ao desativar/resetar; derruba sessões (JWT) já emitidas

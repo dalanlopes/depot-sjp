@@ -148,9 +148,9 @@ export default function EstoqueClient({ canEdit = false }: { canEdit?: boolean }
             className="card p-4 sm:p-6 w-full max-w-4xl max-h-[85vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold">{selecionado} · Unidades em estoque</h3>
-              <button onClick={() => setSelecionado(null)} className="text-[var(--muted)] hover:text-[var(--foreground)] text-xl leading-none">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h3 className="text-base font-semibold min-w-0 break-words">{selecionado} · Unidades em estoque</h3>
+              <button onClick={() => setSelecionado(null)} className="shrink-0 text-[var(--muted)] hover:text-[var(--foreground)] text-xl leading-none">
                 ×
               </button>
             </div>

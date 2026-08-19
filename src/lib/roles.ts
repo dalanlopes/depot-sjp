@@ -1,4 +1,16 @@
+import type { ComponentType, SVGProps } from "react";
 import type { Role } from "./types";
+import {
+  IconDashboard,
+  IconPackage,
+  IconWrench,
+  IconAlertTriangle,
+  IconCalendar,
+  IconTruck,
+  IconFileText,
+  IconUpload,
+  IconUser,
+} from "@/components/icons";
 
 export const ROLE_LABELS: Record<Role, string> = {
   MECANICO: "Mecânico",
@@ -31,16 +43,16 @@ export const ALL_TABS: Tab[] = [
   "usuarios",
 ];
 
-export const TAB_LABELS: Record<Tab, { label: string; icon: string }> = {
-  dashboard: { label: "Indicadores", icon: "📊" },
-  estoque: { label: "Estoque", icon: "📦" },
-  oficina: { label: "Oficina", icon: "🔧" },
-  ocorrencias: { label: "Ocorrências", icon: "⚠️" },
-  programacao: { label: "Programação", icon: "🗓️" },
-  coletas: { label: "Coletas", icon: "🚚" },
-  relatorios: { label: "Relatórios", icon: "📄" },
-  importacao: { label: "Importação", icon: "⬆️" },
-  usuarios: { label: "Usuários", icon: "👤" },
+export const TAB_LABELS: Record<Tab, { label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> = {
+  dashboard: { label: "Indicadores", icon: IconDashboard },
+  estoque: { label: "Estoque", icon: IconPackage },
+  oficina: { label: "Oficina", icon: IconWrench },
+  ocorrencias: { label: "Ocorrências", icon: IconAlertTriangle },
+  programacao: { label: "Programação", icon: IconCalendar },
+  coletas: { label: "Coletas", icon: IconTruck },
+  relatorios: { label: "Relatórios", icon: IconFileText },
+  importacao: { label: "Importação", icon: IconUpload },
+  usuarios: { label: "Usuários", icon: IconUser },
 };
 
 // Abas padrão por perfil. Usado como sugestão ao criar usuário e como

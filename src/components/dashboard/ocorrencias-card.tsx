@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDateBR } from "@/lib/tz";
+import { IconAlertTriangle, IconCheckCircle } from "@/components/icons";
 
 interface Ocorrencia {
   id: string;
@@ -20,7 +21,9 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
     <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base">⚠️</span>
+          <span className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
+            <IconAlertTriangle className="w-4 h-4 text-amber-700" />
+          </span>
           <h3 className="text-sm font-semibold">Ocorrências</h3>
         </div>
         <span className="badge bg-amber-100 text-amber-700">{ocorrencias.length} no período</span>
@@ -29,7 +32,7 @@ export default function OcorrenciasCard({ ocorrencias }: { ocorrencias: Ocorrenc
       <div className="mt-2 max-h-[220px] overflow-y-auto overflow-x-hidden pr-1">
         {ocorrencias.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-            <span className="text-2xl">✅</span>
+            <IconCheckCircle className="w-7 h-7 text-green-500" />
             <p className="text-sm text-[var(--muted)]">Nenhuma ocorrência registrada no período.</p>
           </div>
         ) : (

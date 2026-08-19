@@ -42,8 +42,12 @@ function TabCheckboxes({
       {ALL_TABS.map((tab) => (
         <label key={tab} className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={selected.includes(tab)} onChange={() => toggle(tab)} />
-          <span>
-            {TAB_LABELS[tab].icon} {TAB_LABELS[tab].label}
+          <span className="inline-flex items-center gap-1.5">
+            {(() => {
+              const Icon = TAB_LABELS[tab].icon;
+              return <Icon className="w-4 h-4 text-[var(--muted)]" />;
+            })()}
+            {TAB_LABELS[tab].label}
           </span>
         </label>
       ))}

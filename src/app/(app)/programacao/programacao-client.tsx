@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ARMADORES, SOLICITANTES, SOLICITANTE_LABELS, PADRAO_LABELS, type Armador, type SolicitanteTipo } from "@/lib/types";
 import { formatDateBR, formatDateTimeBR, todayBR, addDaysBR, nowHourBR } from "@/lib/tz";
+import { IconTrash } from "@/components/icons";
 
 interface ProgramacaoRow {
   id: string;
@@ -314,7 +315,7 @@ export default function ProgramacaoClient({ podeEditar = true }: { podeEditar?: 
                           className="px-3 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
                           title="Excluir programação"
                         >
-                          {excluindo === r.id ? "..." : "🗑"}
+                          {excluindo === r.id ? "..." : <IconTrash className="w-4 h-4" />}
                         </button>
                         )}
                       </div>

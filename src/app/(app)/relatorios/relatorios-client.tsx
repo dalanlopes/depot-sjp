@@ -472,8 +472,8 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
             className="card p-4 sm:p-6 w-full max-w-3xl max-h-[85vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h3 className="text-base font-semibold min-w-0 break-words">
                 Containers liberados — {liberadosInfo?.solicitante}
                 {liberadosInfo?.data && (
                   <span className="text-[var(--muted)] font-normal">
@@ -482,7 +482,7 @@ export default function RelatoriosClient({ acesso }: { acesso: Acesso }) {
                   </span>
                 )}
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 {liberadosId && (
                   <a
                     href={`/api/programacao/${liberadosId}/coletas/export`}

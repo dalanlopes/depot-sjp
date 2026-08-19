@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
+import { IconWrench } from "@/components/icons";
 
 interface Ponto {
   data: string;
@@ -55,7 +56,7 @@ export default function RepairsBarCard({
     <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Reparados Oficina SJP</h3>
-        <span className="text-lg">🔧</span>
+        <IconWrench className="w-5 h-5 text-[var(--muted)]" />
       </div>
       <div className="flex justify-center mb-2 mt-1.5">
         <div className="rounded-xl bg-indigo-50 px-3 py-1.5 max-w-full inline-flex flex-wrap items-center justify-center text-center gap-x-5 gap-y-0.5 text-xs">

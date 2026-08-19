@@ -12,6 +12,7 @@ import {
   type StatusContainer,
 } from "@/lib/types";
 import { todayBR } from "@/lib/tz";
+import { IconUpload, IconDownload, IconAlertTriangle } from "@/components/icons";
 
 interface ImportResult {
   imported: number;
@@ -253,7 +254,7 @@ export default function ImportacaoClient() {
               dragOver ? "border-[var(--primary)] bg-indigo-50" : "border-[var(--border)]"
             }`}
           >
-            <span className="text-3xl">⬆️</span>
+            <IconUpload className="w-8 h-8 text-[var(--muted)]" />
             <span className="text-sm font-medium">
               {uploading ? "Enviando..." : "Arraste sua planilha aqui ou clique para selecionar"}
             </span>
@@ -279,9 +280,12 @@ export default function ImportacaoClient() {
                 {result.imported} de {result.total} linhas processadas com sucesso.
               </p>
               {result.total > 0 && result.criados === 0 && result.atualizados === 0 && result.semAlteracao > 0 && (
-                <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  ⚠️ Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
-                  {result.semAlteracao} linha(s) já estavam iguais no sistema.
+                <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <IconAlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+                  <span>
+                    Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
+                    {result.semAlteracao} linha(s) já estavam iguais no sistema.
+                  </span>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 text-xs">
@@ -427,7 +431,7 @@ export default function ImportacaoClient() {
               dragOverSaida ? "border-[var(--primary)] bg-indigo-50" : "border-[var(--border)]"
             }`}
           >
-            <span className="text-3xl">⬇️</span>
+            <IconDownload className="w-8 h-8 text-[var(--muted)]" />
             <span className="text-sm font-medium">
               {uploadingSaida ? "Enviando..." : "Arraste a planilha de saída aqui ou clique para selecionar"}
             </span>
@@ -454,9 +458,12 @@ export default function ImportacaoClient() {
                 resultSaida.criados === 0 &&
                 resultSaida.atualizados === 0 &&
                 resultSaida.semAlteracao > 0 && (
-                  <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    ⚠️ Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
-                    {resultSaida.semAlteracao} saída(s) já estavam iguais no sistema.
+                  <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <IconAlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+                    <span>
+                      Essa planilha já tinha sido importada antes — nenhuma novidade, todas as{" "}
+                      {resultSaida.semAlteracao} saída(s) já estavam iguais no sistema.
+                    </span>
                   </div>
                 )}
               <div className="flex flex-wrap gap-2 text-xs">

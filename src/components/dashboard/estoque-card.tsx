@@ -1,5 +1,7 @@
 "use client";
 
+import { IconPackage } from "@/components/icons";
+
 interface ArmadorAlimento {
   armador: string;
   alimentoOk: number;
@@ -20,7 +22,7 @@ export default function EstoqueCard({
     <div className="card p-4">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Estoque</h3>
-        <span className="text-lg">📦</span>
+        <IconPackage className="w-5 h-5 text-[var(--muted)]" />
       </div>
       <div className="mb-2.5 mt-2">
         <div className="flex items-center justify-between mb-1.5">
