@@ -11,11 +11,8 @@ export default async function AppLayout({
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen">
-      <Nav session={session} />
-      <main className="p-6 md:p-8">
-        <div className="max-w-6xl mx-auto">{children}</div>
-      </main>
-    </div>
+    <Nav session={session}>
+      {children}
+    </Nav>
   );
 }
